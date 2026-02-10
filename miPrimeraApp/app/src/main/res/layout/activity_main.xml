@@ -7,57 +7,53 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
     <TextView
         android:id="@+id/lblNum1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Num 1: "
+        android:text="NUM 1: "
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.044"
+        app:layout_constraintHorizontal_bias="0.091"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.089" />
+        app:layout_constraintVertical_bias="0.068" />
 
     <EditText
         android:id="@+id/txtNum1"
-        android:layout_width="294dp"
-        android:layout_height="39dp"
-        android:autofillHints="none"
-        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:hint="Escribe un numero"
+        android:layout_marginLeft="90dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.948"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.076"/>
+        app:layout_constraintVertical_bias="0.056"
+        tools:layout_editor_absoluteX="95dp" />
 
     <TextView
         android:id="@+id/lblNum2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Num 2: "
+        android:text="Num 2:"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.044"
+        app:layout_constraintHorizontal_bias="0.091"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.206" />
+        app:layout_constraintTop_toBottomOf="@+id/lblNum1"
+        app:layout_constraintVertical_bias="0.063" />
 
     <EditText
         android:id="@+id/txtNum2"
-        android:layout_width="297dp"
-        android:layout_height="48dp"
-        android:autofillHints="none"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="90dp"
+        android:layout_marginTop="15dp"
         android:hint="Escribe un numero"
-        android:inputType="numberDecimal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.948"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.182" />
+        app:layout_constraintTop_toBottomOf="@+id/txtNum1"
+        app:layout_constraintVertical_bias="0.0"
+        tools:layout_editor_absoluteX="0dp" />
 
     <TextView
         android:id="@+id/lblRespuesta"
@@ -66,83 +62,29 @@
         android:text="Respuesta: ?"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.048"
+        app:layout_constraintHorizontal_bias="0.091"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.304"/>
+        app:layout_constraintTop_toBottomOf="@+id/lblNum2"
+        app:layout_constraintVertical_bias="0.169" />
 
-
-    <RadioGroup
-        android:id="@+id/optOpciones"
-        android:layout_width="135dp"
-        android:layout_height="376dp"
+    <Spinner
+        android:id="@+id/cboOpciones"
+        android:entries="@array/opciones"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="35dp"
         app:layout_constraintBottom_toTopOf="@+id/btnCalcular"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.977"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/txtNum2"
-        app:layout_constraintVertical_bias="0.095">
-
-        <RadioButton
-            android:id="@+id/optSuma"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="SUMA" />
-
-        <RadioButton
-            android:id="@+id/optResta"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="RESTA" />
-
-        <RadioButton
-            android:id="@+id/optMultiplicar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="MULTIPLICACION" />
-
-        <RadioButton
-            android:id="@+id/optDivicion"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="DIVICION" />
-
-        <RadioButton
-            android:id="@+id/optFactorial"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Factorial" />
-
-        <RadioButton
-            android:id="@+id/optPorcentaje"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Porcentaje" />
-
-        <RadioButton
-            android:id="@+id/optExponenciacion"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Exponenciacion" />
-
-        <RadioButton
-            android:id="@+id/optRaiz"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Raiz" />
-
-    </RadioGroup>
+        app:layout_constraintVertical_bias="0.26"
+        tools:layout_editor_absoluteX="16dp" />
 
     <Button
         android:id="@+id/btnCalcular"
-        android:layout_width="213dp"
-        android:layout_height="42dp"
-        android:text="Calcular"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CALCULAR"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.08"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.702" />
+        app:layout_constraintTop_toBottomOf="@+id/txtNum2"
+        app:layout_constraintVertical_bias="0.264"
+        tools:layout_editor_absoluteX="0dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
