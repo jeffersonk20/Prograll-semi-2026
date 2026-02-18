@@ -15,6 +15,7 @@ public class MainActivity extends AppCompatActivity {
     TextView tempVal;
     Spinner spn;
     Button btn;
+    Button btnInvertir;
     Double valores[][] = {
             {1.0, 0.85, 7.67, 26.42, 36.80, 495.77}, // monedas
             {1.0, 1000.0, 100.0, 39.3701, 3.280841666667, 1.1963081929167, 1.09361}, // longitud
@@ -41,6 +42,9 @@ public class MainActivity extends AppCompatActivity {
 
         btn = findViewById(R.id.btnConvertir);
         btn.setOnClickListener(v->convertir());
+
+        btnInvertir = findViewById(R.id.btnInvertir);
+        btnInvertir.setOnClickListener(v -> invertirConversion());
 
         cambiarEtiqueta(0);//valores predeterminaods
 
@@ -89,6 +93,17 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             // Error al parsear el numero
         }
+    }
+    private void invertirConversion() {
+        Spinner spnDe = findViewById(R.id.spnDe);
+        Spinner spnA = findViewById(R.id.spnA);
+
+        int posDe = spnDe.getSelectedItemPosition();
+        int posA = spnA.getSelectedItemPosition();
+
+        // Intercambiar posiciones
+        spnDe.setSelection(posA);
+        spnA.setSelection(posDe);
     }
     double conversor(int tipo, int de, int a, double cantidad){
         return (valores[tipo][a] / valores[tipo][de]) * cantidad;

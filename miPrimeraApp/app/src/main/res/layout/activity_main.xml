@@ -9,62 +9,108 @@
 
     <TextView
         android:id="@+id/lblTipo"
-        android:text="TIPO:"
-        android:layout_marginTop="20dp"
-        android:layout_marginLeft="20dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-    <Spinner
-        android:entries="@array/tipo"
-        android:id="@+id/spnTipo"
-        android:layout_marginTop="20dp"
-        android:layout_marginLeft="60dp"
         android:layout_height="wrap_content"
-        android:layout_width="67px" />
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="15dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="643dp"
+        android:text="TIPO:" />
+
+    <Spinner
+        android:id="@+id/spnTipo"
+        android:layout_width="172dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="60dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="643dp"
+        android:entries="@array/tipo" />
+
     <TextView
         android:id="@+id/lblDe"
-        android:text="DE:"
-        android:layout_marginTop="60dp"
-        android:layout_marginLeft="20dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginBottom="586dp"
+        android:text="DE:" />
+
     <Spinner
         android:id="@+id/spnDe"
-        android:layout_marginLeft="60dp"
-        android:layout_marginTop="60dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="60dp"
+        android:layout_marginTop="122dp"
+        android:layout_marginBottom="586dp" />
+
     <TextView
         android:id="@+id/lblA"
-        android:text="A:"
-        android:layout_marginTop="100dp"
-        android:layout_marginLeft="20dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="100dp"
+        android:layout_marginBottom="544dp"
+        android:text="A:" />
+
     <Spinner
         android:id="@+id/spnA"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:layout_marginLeft="60dp"
         android:layout_marginTop="100dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_marginBottom="554dp" />
+
     <EditText
         android:id="@+id/txtCantidad"
-        android:layout_marginTop="140dp"
-        android:hint="Cantidad a convertir"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="267dp"
+        android:layout_marginBottom="419dp"
+        android:hint="Cantidad a convertir" />
+
     <TextView
         android:id="@+id/lblRespuesta"
-        android:layout_marginTop="200dp"
-        android:layout_marginLeft="20dp"
-        android:text="Respuesta: ?"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="434dp"
+        android:layout_marginBottom="278dp"
+        android:text="Respuesta: ?" />
+
     <Button
         android:id="@+id/btnConvertir"
-        android:layout_marginTop="240dp"
-        android:text="CONVERTIR"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_width="194dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="542dp"
+        android:layout_marginBottom="141dp"
+        android:text="CONVERTIR" />
+
+    <Button
+        android:id="@+id/btnInvertir"
+        android:layout_width="142dp"
+        android:layout_height="55dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="236dp"
+        android:layout_marginTop="538dp"
+        android:layout_marginEnd="33dp"
+        android:layout_marginBottom="137dp"
+        android:text="INTERVENIR" />
 
 </RelativeLayout>
