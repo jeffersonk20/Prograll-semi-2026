@@ -7,110 +7,154 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/lblTipo"
+    <Button android:id="@+id/btnTema"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@android:color/transparent"
+        android:text="🌙"
+        android:textSize="26sp"/>
+
+    <TextView android:id="@+id/lblIconoTema"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="15dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="643dp"
-        android:text="TIPO:" />
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="34dp"
+        android:layout_marginTop="36dp"
+        android:text="💱"
+        android:textSize="32sp"/>
 
-    <Spinner
-        android:id="@+id/spnTipo"
-        android:layout_width="172dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="60dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="643dp"
-        android:entries="@array/tipo" />
-
-    <TextView
-        android:id="@+id/lblDe"
+    <TextView android:id="@+id/lblTitulo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="60dp"
-        android:layout_marginBottom="586dp"
-        android:text="DE:" />
-
-    <Spinner
-        android:id="@+id/spnDe"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="60dp"
-        android:layout_marginTop="122dp"
-        android:layout_marginBottom="586dp" />
-
-    <TextView
-        android:id="@+id/lblA"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="100dp"
-        android:layout_marginBottom="544dp"
-        android:text="A:" />
-
-    <Spinner
-        android:id="@+id/spnA"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="60dp"
-        android:layout_marginTop="100dp"
-        android:layout_marginBottom="554dp" />
-
-    <EditText
-        android:id="@+id/txtCantidad"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginTop="267dp"
-        android:layout_marginBottom="419dp"
-        android:hint="Cantidad a convertir" />
-
-    <TextView
-        android:id="@+id/lblRespuesta"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="434dp"
-        android:layout_marginBottom="278dp"
-        android:text="Respuesta: ?" />
-
-    <Button
-        android:id="@+id/btnConvertir"
-        android:layout_width="194dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginTop="542dp"
-        android:layout_marginBottom="141dp"
-        android:text="CONVERTIR" />
-
-    <Button
-        android:id="@+id/btnInvertir"
-        android:layout_width="142dp"
-        android:layout_height="55dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
+        android:layout_marginStart="125dp"
+        android:layout_marginTop="44dp"
+        android:layout_marginEnd="131dp"
+        android:text="CONVERSOR"
+        android:textColor="#2196F3"
+        android:textSize="26sp"/>
+
+    <TextView android:id="@+id/lblTipo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="51dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="133dp"
+        android:text="TIPO:"/>
+
+    <Spinner android:id="@+id/spnTipo"
+        android:layout_width="253dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginLeft="60dp"
+        android:layout_marginTop="135dp"
+        android:layout_marginEnd="57dp"
+        android:entries="@array/tipo"/>
+
+    <TextView android:id="@+id/lblDe"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="52dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="186dp"
+        android:layout_marginEnd="338dp"
+        android:text="DE:"/>
+
+    <Spinner android:id="@+id/spnDe"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="97dp"
+        android:layout_marginLeft="60dp"
+        android:layout_marginTop="186dp"
+        android:layout_marginEnd="59dp"/>
+
+    <TextView android:id="@+id/lblA"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="227dp"
+        android:layout_marginEnd="342dp"
+        android:text="A:"/>
+
+    <Spinner android:id="@+id/spnA"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="99dp"
+        android:layout_marginLeft="60dp"
+        android:layout_marginTop="224dp"
+        android:layout_marginEnd="60dp"/>
+
+    <EditText android:id="@+id/txtCantidad"
+        android:layout_width="252dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="34dp"
+        android:layout_marginTop="365dp"
+        android:hint="Cantidad a convertir"
+        android:inputType="numberDecimal"/>
+
+    <Button android:id="@+id/btnInvertir"
+        android:layout_width="84dp"
+        android:layout_height="72dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="307dp"
+        android:layout_marginTop="349dp"
+        android:layout_marginEnd="19dp"
+        android:background="@android:color/transparent"
+        android:text="🔄"
+        android:textColor="#000000"
+        android:textSize="32sp"/>
+
+    <TextView android:id="@+id/lblRespuesta"
+        android:layout_width="347dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/txtCantidad"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="236dp"
-        android:layout_marginTop="538dp"
-        android:layout_marginEnd="33dp"
-        android:layout_marginBottom="137dp"
-        android:text="INTERVENIR" />
+        android:layout_marginStart="27dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="51dp"
+        android:layout_marginEnd="37dp"
+        android:layout_marginBottom="238dp"
+        android:text="Respuesta: "
+        android:textColor="#2196F3"
+        android:textSize="24sp"/>
+
+    <Button android:id="@+id/btnConvertir"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="-2dp"
+        android:layout_marginBottom="143dp"
+        android:text="CONVERTIR"/>
 
 </RelativeLayout>
+
