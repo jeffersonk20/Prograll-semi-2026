@@ -112,29 +112,31 @@
         android:layout_marginTop="223dp"
         android:layout_marginEnd="66dp" />
 
-    <EditText android:id="@+id/txtCantidad"
+    <EditText
+        android:id="@+id/txtCantidad"
         android:layout_width="252dp"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="34dp"
-        android:layout_marginTop="365dp"
+        android:layout_marginStart="46dp"
+        android:layout_marginTop="359dp"
         android:hint="Cantidad a convertir"
-        android:inputType="numberDecimal"/>
+        android:inputType="numberDecimal" />
 
-    <Button android:id="@+id/btnInvertir"
+    <Button
+        android:id="@+id/btnInvertir"
         android:layout_width="84dp"
         android:layout_height="72dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="307dp"
-        android:layout_marginTop="349dp"
-        android:layout_marginEnd="19dp"
+        android:layout_marginStart="221dp"
+        android:layout_marginTop="352dp"
+        android:layout_marginEnd="105dp"
         android:background="@android:color/transparent"
         android:text="🔄"
         android:textColor="#000000"
-        android:textSize="32sp"/>
+        android:textSize="32sp" />
 
     <TextView android:id="@+id/lblRespuesta"
         android:layout_width="347dp"
