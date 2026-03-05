@@ -1,73 +1,109 @@
 package com.example.miprimeraapp;
 
-import android.graphics.Color;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
+import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TabHost;
 import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
-    TextView tempVal;
-    SensorManager sensorManager;
-    Sensor sensor;
-    SensorEventListener sensorEventListener;
 
-    @Override
-    protected void onPause() {
-        detener();
-        super.onPause();
-    }
+    TabHost tbh;
+    TextView lblaguaRespuesta, tempVal;
+    EditText txtaguaCantidad;
+    Button btnaguaCalcular, btn;
+    Spinner spn;
 
-    @Override
-    protected void onResume() {
-        iniciar();
-        super.onResume();
-    }
+    Double[] valores = {0.0929, 0.698896, 0.836, 1.0, 0.001588, 0.000143, 0.0001};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        sensorAcelerometro();
-    }
-    private void iniciar(){
-        sensorManager.registerListener(sensorEventListener, sensor, 2000*1000);
-    }
-    private void detener(){
-        sensorManager.unregisterListener(sensorEventListener);
-    }
-    private void sensorAcelerometro(){
-        tempVal = findViewById(R.id.lblSensorAcelerometro);
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        if(sensor==null){
-            tempVal.setText("No dispones del sensor de acelerometro");
-            finish();
-        }
-        sensorEventListener = new SensorEventListener() {
-            @Override
-            public void onSensorChanged(SensorEvent sensorEvent) {
-                double x = sensorEvent.values[0];
-                double y = sensorEvent.values[1];
-                double z = sensorEvent.values[2];
-                tempVal.setText("Desplazamiento: X: "+ x +"\n; Y: "+y +"\n; Z: "+z);
-            }
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int i) {
 
+        tbh = findViewById(R.id.tbhConversores);
+        if (tbh != null) {
+            tbh.setup();
+
+            TabHost.TabSpec specAgua = tbh.newTabSpec("Agua");
+            specAgua.setContent(R.id.tabvaloragua);
+            specAgua.setIndicator("Agua");
+            tbh.addTab(specAgua);
+
+            TabHost.TabSpec specAreas = tbh.newTabSpec("Areas");
+            specAreas.setContent(R.id.tabAreas);
+            specAreas.setIndicator("ÁREAS");
+            tbh.addTab(specAreas);
+        }
+
+        txtaguaCantidad = findViewById(R.id.txtaguaCantidad);
+        lblaguaRespuesta = findViewById(R.id.lblaguaRespuesta);
+        btnaguaCalcular = findViewById(R.id.btnaguaCalcular);
+
+        if (btnaguaCalcular != null) {
+            btnaguaCalcular.setOnClickListener(v -> calcularPagoAgua());
+        }
+
+        btn = findViewById(R.id.btnAreasConvertir);
+        if (btn != null) {
+            btn.setOnClickListener(v -> convertirAreas());
+        }
+    }
+
+    private void calcularPagoAgua() {
+        try {
+            String strMetros = txtaguaCantidad.getText().toString();
+            if (strMetros.isEmpty()) {
+                lblaguaRespuesta.setText("Por favor, ingrese los metros.");
+                return;
             }
-        };
+
+            double metros = Double.parseDouble(strMetros);
+            double totalAPagar = 0;
+
+            if (metros <= 18) {
+                totalAPagar = 6.0;
+            } else if (metros <= 28) {
+                double exceso = metros - 18;
+                totalAPagar = 6.0 + (exceso * 0.45);
+            } else {
+                double excesoSobre28 = metros - 28;
+                totalAPagar = 6.0 + 4.50 + (excesoSobre28 * 0.65);
+            }
+
+            lblaguaRespuesta.setText("Cantidad a pagar: $" + String.format("%.2f", totalAPagar));
+
+        } catch (Exception e) {
+            lblaguaRespuesta.setText("Error: Ingrese un valor válido.");
+        }
+    }
+
+    private void convertirAreas() {
+        try {
+            spn = findViewById(R.id.spnAreasDe);
+            int de = spn.getSelectedItemPosition();
+
+            spn = findViewById(R.id.spnAreasA);
+            int a = spn.getSelectedItemPosition();
+
+            EditText txtCantidad = findViewById(R.id.txtAreasCantidad);
+            String cantidadStr = txtCantidad.getText().toString();
+
+            if (!cantidadStr.isEmpty()) {
+                double cantidad = Double.parseDouble(cantidadStr);
+                double respuesta = conversor(de, a, cantidad);
+
+                tempVal = findViewById(R.id.lblAreasRespuesta);
+                tempVal.setText("Respuesta: " + String.format("%.6f", respuesta));
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    double conversor(int de, int a, double cantidad) {
+        return (valores[a] / valores[de]) * cantidad;
     }
 }

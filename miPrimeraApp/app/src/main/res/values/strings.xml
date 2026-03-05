@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">Tarea-Conversores</string>
-    <string-array name="tipo">
-        <item>Monedas</item>
-        <item>Longitud</item>
-        <item>Volumen</item>
-        <item>Masa</item>
-        <item>Tiempo</item>
-        <item>Almacenamiento</item>
-        <item>Transferencia de datos</item>
+    <string name="app_name">Parcial_1</string>
+    <string-array name="areas">
+        <item>Pie cuadrado (ft²)</item>
+        <item>Vara cuadrada</item>
+        <item>Yarda cuadrada (yd²)</item>
+        <item>Metro cuadrado (m²)</item>
+        <item>Tareas</item>
+        <item>Manzana</item>
+        <item>Hectárea (ha)</item>
     </string-array>
 </resources>

@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="miPrimeraApp.app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-02-19T05:02:29.739523700Z">
+        <DropdownSelection timestamp="2026-03-05T15:51:37.166758200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW204QW9B" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\jeffe\.android\avd\Practica.avd" />
             </handle>
           </Target>
         </DropdownSelection>
