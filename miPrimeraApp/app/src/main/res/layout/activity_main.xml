@@ -1,12 +1,190 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<TabHost xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:id="@+id/tabHost"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:background="#F8FAFC">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+        <!-- HEADER -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:background="#0F172A"
+            android:elevation="8dp"
+            android:padding="12dp">
 
-</RelativeLayout>
+            <TextView
+                android:id="@+id/logo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="JEFFPHONE"
+                android:textColor="#3B82F6"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/cart"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:rotation="180"
+                    app:tint="#FFFFFF" />
+
+                <ImageButton
+                    android:id="@+id/profile_btn"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_myplaces"
+                    app:tint="#FFFFFF" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- BUSCADOR -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#0F172A"
+            android:paddingBottom="12dp">
+            <EditText
+                android:id="@+id/search"
+                android:layout_width="match_parent"
+                android:layout_height="45dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/rounded_card"
+                android:hint="Buscar..."
+                android:paddingStart="16dp"
+                android:drawableStart="@android:drawable/ic_menu_search"
+                android:drawablePadding="8dp" />
+        </LinearLayout>
+
+        <!-- TABS -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:fillViewport="true"
+            android:background="#1E293B">
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:layout_width="wrap_content"
+                android:layout_height="55dp" />
+        </HorizontalScrollView>
+
+        <FrameLayout
+            android:id="@android:id/tabcontent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ScrollView android:id="@+id/tab_inicio" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:id="@+id/inicio_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+            </ScrollView>
+
+            <ScrollView android:id="@+id/tab_gamaAlta" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:id="@+id/gamaAlta_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+            </ScrollView>
+
+            <ScrollView android:id="@+id/tab_gamaMedia" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:id="@+id/gamaMedia_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+            </ScrollView>
+
+            <ScrollView android:id="@+id/tab_gaming" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:id="@+id/gaming_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+            </ScrollView>
+
+            <!-- PERFIL TAB -->
+            <ScrollView android:id="@+id/tab_profile" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:gravity="center_horizontal">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        app:cardCornerRadius="60dp">
+                        <ImageView
+                            android:id="@+id/profile_image"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@mipmap/ic_launcher" />
+                    </androidx.cardview.widget.CardView>
+
+                    <Button
+                        android:id="@+id/btn_change_photo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Cambiar Foto"
+                        android:layout_marginTop="8dp"
+                        android:backgroundTint="#3B82F6"/>
+
+                    <TextView
+                        android:id="@+id/user_email_display"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="correo@ejemplo.com"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="16dp"
+                        android:textColor="#1E293B"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Productos en el Carrito"
+                        android:layout_marginTop="32dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_gravity="start"/>
+
+                    <LinearLayout
+                        android:id="@+id/cart_items_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Productos Comprados"
+                        android:layout_marginTop="24dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_gravity="start"/>
+
+                    <LinearLayout
+                        android:id="@+id/purchased_items_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"/>
+
+                </LinearLayout>
+            </ScrollView>
+
+        </FrameLayout>
+    </LinearLayout>
+</TabHost>
