@@ -1,6 +1,8 @@
 package com.example.miprimeraapp;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -11,9 +13,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -25,6 +25,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -62,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
 
         searchEdit = findViewById(R.id.search);
         setupTabs();
-        initCatalog();
+        loadProducts(); // Cargar productos guardados o inicializar si no hay
         setupProfile();
         setupFilters();
 
@@ -102,6 +106,29 @@ public class MainActivity extends AppCompatActivity {
         });
 
         refreshAllContainers(); 
+    }
+
+    private void saveProducts() {
+        SharedPreferences sharedPreferences = getSharedPreferences("product_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        Gson gson = new Gson();
+        String json = gson.toJson(productCatalog);
+        editor.putString("product_list", json);
+        editor.apply();
+    }
+
+    private void loadProducts() {
+        SharedPreferences sharedPreferences = getSharedPreferences("product_prefs", Context.MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = sharedPreferences.getString("product_list", null);
+        Type type = new TypeToken<ArrayList<Product>>() {}.getType();
+        productCatalog = gson.fromJson(json, type);
+
+        if (productCatalog == null || productCatalog.isEmpty()) {
+            productCatalog = new ArrayList<>();
+            initCatalog();
+            saveProducts();
+        }
     }
 
     private void setupFilters() {
@@ -259,6 +286,7 @@ public class MainActivity extends AppCompatActivity {
             new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
                 .setPositiveButton("Sí", (d, w) -> {
                     productCatalog.remove(p);
+                    saveProducts(); // Guardar cambios al eliminar
                     applyFilters();
                     Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
                 }).setNegativeButton("No", null).show();
@@ -281,7 +309,9 @@ public class MainActivity extends AppCompatActivity {
         tempDialogImageView.setLayoutParams(new LinearLayout.LayoutParams(200, 200));
         tempDialogImageView.setImageResource(R.mipmap.ic_launcher);
         tempDialogImageView.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
             startActivityForResult(intent, PICK_PRODUCT_IMAGE);
         });
         layout.addView(tempDialogImageView);
@@ -333,6 +363,7 @@ public class MainActivity extends AppCompatActivity {
                     productCatalog.add(new Product(name, cat, price, desc, specs, resId));
                 }
                 
+                saveProducts(); // Guardar cambios al agregar/modificar
                 applyFilters();
                 Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
@@ -350,8 +381,13 @@ public class MainActivity extends AppCompatActivity {
             if (requestCode == PICK_PRODUCT_IMAGE && tempDialogImageView != null) {
                 selectedProductImageUri = data.getData();
                 tempDialogImageView.setImageURI(selectedProductImageUri);
-                // Dar permisos persistentes si es necesario (para que la imagen no desaparezca al reiniciar)
-                getContentResolver().takePersistableUriPermission(selectedProductImageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                // Dar permisos persistentes para que la imagen no desaparezca al reiniciar
+                try {
+                    int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+                    getContentResolver().takePersistableUriPermission(selectedProductImageUri, takeFlags);
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

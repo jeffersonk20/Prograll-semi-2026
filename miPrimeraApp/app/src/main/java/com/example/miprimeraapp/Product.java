@@ -9,6 +9,10 @@ public class Product {
     private int imageResource;
     private String imageUri; // Added to support custom images
 
+    // No-argument constructor for Gson
+    public Product() {
+    }
+
     public Product(String name, String category, double price, String description, String specs, int imageResource) {
         this.name = name;
         this.category = category;
@@ -36,4 +40,12 @@ public class Product {
     public String getSpecs() { return specs; }
     public int getImageResource() { return imageResource; }
     public String getImageUri() { return imageUri; }
+
+    public void setName(String name) { this.name = name; }
+    public void setCategory(String category) { this.category = category; }
+    public void setPrice(double price) { this.price = price; }
+    public void setDescription(String description) { this.description = description; }
+    public void setSpecs(String specs) { this.specs = specs; }
+    public void setImageResource(int imageResource) { this.imageResource = imageResource; }
+    public void setImageUri(String imageUri) { this.imageUri = imageUri; }
 }
