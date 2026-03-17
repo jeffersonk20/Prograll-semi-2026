@@ -57,12 +57,14 @@
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- BUSCADOR -->
+        <!-- BUSCADOR Y BOTONES ADMIN -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#0F172A"
+            android:orientation="vertical"
             android:paddingBottom="12dp">
+
             <EditText
                 android:id="@+id/search"
                 android:layout_width="match_parent"
@@ -74,6 +76,136 @@
                 android:paddingStart="16dp"
                 android:drawableStart="@android:drawable/ic_menu_search"
                 android:drawablePadding="8dp" />
+
+            <!-- FILTROS DE PRECIO -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:scrollbars="none">
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <Button
+                        android:id="@+id/btnFilterAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="35dp"
+                        android:text="Todos"
+                        android:textSize="10sp"
+                        android:backgroundTint="#3B82F6"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginEnd="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnFilterCheap"
+                        android:layout_width="wrap_content"
+                        android:layout_height="35dp"
+                        android:text="Económicos"
+                        android:textSize="10sp"
+                        android:backgroundTint="#1E293B"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginEnd="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnFilterMid"
+                        android:layout_width="wrap_content"
+                        android:layout_height="35dp"
+                        android:text="Media"
+                        android:textSize="10sp"
+                        android:backgroundTint="#1E293B"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginEnd="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnFilterPremium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="35dp"
+                        android:text="Premium"
+                        android:textSize="10sp"
+                        android:backgroundTint="#1E293B"
+                        android:textColor="#FFFFFF" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- BOTONES DE ADMINISTRACIÓN -->
+            <LinearLayout
+                android:id="@+id/admin_actions_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageButton
+                        android:id="@+id/btnAddProduct"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_add"
+                        app:tint="#10B981" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Añadir"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageButton
+                        android:id="@+id/btnModeModify"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_edit"
+                        app:tint="#F59E0B" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Modificar"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+                    <ImageButton
+                        android:id="@+id/btnModeDelete"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_delete"
+                        app:tint="#EF4444" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Eliminar"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+            </LinearLayout>
         </LinearLayout>
 
         <!-- TABS -->
@@ -105,6 +237,10 @@
 
             <ScrollView android:id="@+id/tab_gamaMedia" android:layout_width="match_parent" android:layout_height="match_parent">
                 <LinearLayout android:id="@+id/gamaMedia_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+            </ScrollView>
+
+            <ScrollView android:id="@+id/tab_gamaBaja" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:id="@+id/gamaBaja_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
             </ScrollView>
 
             <ScrollView android:id="@+id/tab_gaming" android:layout_width="match_parent" android:layout_height="match_parent">

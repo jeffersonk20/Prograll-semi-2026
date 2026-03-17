@@ -4,12 +4,19 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,8 +34,23 @@ public class MainActivity extends AppCompatActivity {
     private boolean isGuest = false;
     private String userEmail = "";
     private TabHost tbh;
-    private ImageView profileImageView;
     private static final int PICK_IMAGE = 100;
+    private static final int PICK_PRODUCT_IMAGE = 101;
+
+    // Modos de administración
+    private enum AdminMode { NORMAL, MODIFY, DELETE }
+    private AdminMode currentMode = AdminMode.NORMAL;
+
+    // Filtros
+    private String currentPriceFilter = "Todos";
+    private EditText searchEdit;
+
+    // Auxiliar para imagen de producto
+    private ImageView tempDialogImageView;
+    private Uri selectedProductImageUri;
+
+    // Lista dinámica de productos (Catálogo)
+    private List<Product> productCatalog = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,21 +60,114 @@ public class MainActivity extends AppCompatActivity {
         isGuest = getIntent().getBooleanExtra("isGuest", false);
         userEmail = getIntent().getStringExtra("userEmail");
 
+        searchEdit = findViewById(R.id.search);
         setupTabs();
-        loadProducts();
+        initCatalog();
         setupProfile();
+        setupFilters();
 
         findViewById(R.id.cart).setOnClickListener(v -> showCartDialog());
         findViewById(R.id.profile_btn).setOnClickListener(v -> tbh.setCurrentTabByTag("Profile"));
+
+        // Configurar botones de administración
+        findViewById(R.id.btnAddProduct).setOnClickListener(v -> {
+            currentMode = AdminMode.NORMAL;
+            showAddProductDialog(null);
+        });
+
+        findViewById(R.id.btnModeModify).setOnClickListener(v -> {
+            if (currentMode == AdminMode.MODIFY) currentMode = AdminMode.NORMAL;
+            else currentMode = AdminMode.MODIFY;
+            applyFilters();
+            Toast.makeText(this, currentMode == AdminMode.MODIFY ? "Modo Edición Activado" : "Modo Normal", Toast.LENGTH_SHORT).show();
+        });
+
+        findViewById(R.id.btnModeDelete).setOnClickListener(v -> {
+            if (currentMode == AdminMode.DELETE) currentMode = AdminMode.NORMAL;
+            else currentMode = AdminMode.DELETE;
+            applyFilters();
+            Toast.makeText(this, currentMode == AdminMode.DELETE ? "Modo Eliminación Activado" : "Modo Normal", Toast.LENGTH_SHORT).show();
+        });
+
+        // Buscador en tiempo real
+        searchEdit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                applyFilters();
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        refreshAllContainers(); 
+    }
+
+    private void setupFilters() {
+        View.OnClickListener filterClick = v -> {
+            findViewById(R.id.btnFilterAll).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+            findViewById(R.id.btnFilterCheap).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+            findViewById(R.id.btnFilterMid).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+            findViewById(R.id.btnFilterPremium).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+
+            v.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_dark));
+
+            if (v.getId() == R.id.btnFilterAll) currentPriceFilter = "Todos";
+            else if (v.getId() == R.id.btnFilterCheap) currentPriceFilter = "Económicos";
+            else if (v.getId() == R.id.btnFilterMid) currentPriceFilter = "Media";
+            else if (v.getId() == R.id.btnFilterPremium) currentPriceFilter = "Premium";
+
+            applyFilters();
+        };
+
+        findViewById(R.id.btnFilterAll).setOnClickListener(filterClick);
+        findViewById(R.id.btnFilterCheap).setOnClickListener(filterClick);
+        findViewById(R.id.btnFilterMid).setOnClickListener(filterClick);
+        findViewById(R.id.btnFilterPremium).setOnClickListener(filterClick);
+        
+        findViewById(R.id.btnFilterAll).setBackgroundTintList(getColorStateList(android.R.color.holo_blue_dark));
+    }
+
+    private void applyFilters() {
+        String query = searchEdit.getText().toString().toLowerCase();
+        List<Product> filtered = new ArrayList<>();
+
+        for (Product p : productCatalog) {
+            boolean matchesText = p.getName().toLowerCase().contains(query) || 
+                                 p.getDescription().toLowerCase().contains(query);
+            
+            boolean matchesPrice = true;
+            if (currentPriceFilter.equals("Económicos")) matchesPrice = p.getPrice() < 300;
+            else if (currentPriceFilter.equals("Media")) matchesPrice = p.getPrice() >= 300 && p.getPrice() <= 800;
+            else if (currentPriceFilter.equals("Premium")) matchesPrice = p.getPrice() > 800;
+
+            if (matchesText && matchesPrice) {
+                filtered.add(p);
+            }
+        }
+        updateUIWithList(filtered);
+    }
+
+    private void updateUIWithList(List<Product> list) {
+        int[] ids = {R.id.inicio_container, R.id.gamaAlta_container, R.id.gamaMedia_container, R.id.gamaBaja_container, R.id.gaming_container};
+        for (int id : ids) {
+            LinearLayout container = findViewById(id);
+            if (container != null) container.removeAllViews();
+        }
+
+        for (Product p : list) {
+            addProductToUI(p);
+        }
     }
 
     private void setupTabs() {
         tbh = findViewById(R.id.tabHost);
         tbh.setup();
-
         addTab("Inicio", R.id.tab_inicio, "🏠");
         addTab("Alta", R.id.tab_gamaAlta, "💎");
         addTab("Media", R.id.tab_gamaMedia, "📱");
+        addTab("Baja", R.id.tab_gamaBaja, "🔋");
         addTab("Gaming", R.id.tab_gaming, "🎮");
         addTab("Profile", R.id.tab_profile, "👤");
     }
@@ -64,236 +179,233 @@ public class MainActivity extends AppCompatActivity {
         tbh.addTab(spec);
     }
 
-    private void setupProfile() {
-        profileImageView = findViewById(R.id.profile_image);
-        TextView tvEmail = findViewById(R.id.user_email_display);
-        Button btnChangePhoto = findViewById(R.id.btn_change_photo);
-
-        if (isGuest) {
-            tvEmail.setText("Modo Explorador");
-            btnChangePhoto.setVisibility(View.GONE);
-        } else {
-            tvEmail.setText(userEmail);
-            btnChangePhoto.setOnClickListener(v -> {
-                Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-                startActivityForResult(gallery, PICK_IMAGE);
-            });
-            updateProfileLists();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && requestCode == PICK_IMAGE && data != null) {
-            Uri imageUri = data.getData();
-            profileImageView.setImageURI(imageUri);
-        }
-    }
-
-    private void loadProducts() {
+    private void initCatalog() {
         int icon = R.mipmap.ic_launcher;
-        
-        Product p1 = new Product("iPhone 15 Pro", "Alta", 1199.0, 
-                "Titanio aeroespacial.", 
-                "• Pantalla: 6.1\" OLED\n• Chip: A17 Pro\n• Cámara: 48MP Principal", icon);
-        
-        Product p2 = new Product("S24 Ultra", "Alta", 1299.0, 
-                "Galaxy AI Integrada.", 
-                "• Pantalla: 6.8\" Dynamic AMOLED\n• Cámara: 200MP\n• S-Pen incluido", icon);
+        productCatalog.add(new Product("iPhone 15 Pro Max", "Alta", 1399.0, 
+            "El tope de gama de Apple con acabado en titanio de grado aeroespacial.", 
+            "• Chip A17 Pro (3nm)\n• Pantalla Super Retina XDR OLED 6.7\"\n• Sistema de Cámara Pro 48MP (Teleobjetivo x5)\n• Puerto USB-C 3.0\n• Botón de Acción personalizable.", icon));
 
-        Product p3 = new Product("Galaxy A54", "Media", 450.0, "Pantalla Super AMOLED.", "• Pantalla: 6.4\"\n• Batería: 5000 mAh", icon);
+        productCatalog.add(new Product("Samsung S24 Ultra", "Alta", 1299.0, 
+            "El smartphone definitivo impulsado por Inteligencia Artificial Avanzada.", 
+            "• Snapdragon 8 Gen 3 for Galaxy\n• Pantalla 6.8\" Dynamic AMOLED 2X QHD+\n• S-Pen de baja latencia integrado\n• Cámara principal de 200MP\n• Funciones Galaxy AI integradas.", icon));
 
-        addProduct(p1, R.id.gamaAlta_container);
-        addProduct(p2, R.id.gamaAlta_container);
-        addProduct(p3, R.id.gamaMedia_container);
-        addProduct(p1, R.id.inicio_container);
+        productCatalog.add(new Product("Galaxy A54 5G", "Media", 450.0, 
+            "Equilibrio perfecto entre diseño premium y rendimiento excepcional.", 
+            "• Procesador Exynos 1380\n• Pantalla Super AMOLED 120Hz 6.4\"\n• 8GB RAM + 128GB Almacenamiento\n• Cámara 50MP con OIS\n• Certificación IP67 agua/polvo.", icon));
+
+        productCatalog.add(new Product("Redmi Note 13", "Baja", 199.0, 
+            "La mejor opción económica con pantalla de calidad y carga ultra rápida.", 
+            "• Pantalla AMOLED 120Hz Full HD+\n• Cámara triple de 108MP\n• Carga rápida de 33W (cargador incluido)\n• Batería de 5000mAh\n• Sensor de huellas bajo pantalla.", icon));
+
+        productCatalog.add(new Product("Asus ROG Phone 8", "Gaming", 1099.0, 
+            "Potencia extrema y diseño optimizado para los jugadores más exigentes.", 
+            "• Snapdragon 8 Gen 3\n• Pantalla LTPO 165Hz ultra fluida\n• Sistema de enfriamiento AeroActive\n• Gatillos AirTrigger sensibles a la presión\n• Iluminación Aura RGB personalizable.", icon));
     }
 
-    private void addProduct(Product p, int containerId) {
+    private void refreshAllContainers() {
+        applyFilters();
+    }
+
+    private void addProductToUI(Product p) {
+        int containerId;
+        switch (p.getCategory()) {
+            case "Alta": containerId = R.id.gamaAlta_container; break;
+            case "Media": containerId = R.id.gamaMedia_container; break;
+            case "Baja": containerId = R.id.gamaBaja_container; break;
+            case "Gaming": containerId = R.id.gaming_container; break;
+            default: containerId = R.id.inicio_container;
+        }
+
         LinearLayout container = findViewById(containerId);
         if (container == null) return;
 
         View v = LayoutInflater.from(this).inflate(R.layout.item_product, container, false);
+        ImageView imgView = v.findViewById(R.id.imgProduct);
+        if (p.getImageUri() != null) {
+            imgView.setImageURI(Uri.parse(p.getImageUri()));
+        } else {
+            imgView.setImageResource(p.getImageResource());
+        }
+
         ((TextView) v.findViewById(R.id.txtName)).setText(p.getName());
         ((TextView) v.findViewById(R.id.txtDescription)).setText(p.getDescription());
         ((TextView) v.findViewById(R.id.txtPrice)).setText(String.format(Locale.US, "$%.2f", p.getPrice()));
 
-        View actionContainer = v.findViewById(R.id.action_buttons_container);
-        if (isGuest) {
-            actionContainer.setVisibility(View.GONE);
+        View btnBuy = v.findViewById(R.id.btnBuyNow);
+        View btnCart = v.findViewById(R.id.btnAddToCart);
+        View btnEdit = v.findViewById(R.id.btnModify);
+        View btnDel = v.findViewById(R.id.btnDelete);
+
+        if (currentMode == AdminMode.MODIFY) {
+            btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
+            btnEdit.setVisibility(View.VISIBLE); btnDel.setVisibility(View.GONE);
+        } else if (currentMode == AdminMode.DELETE) {
+            btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
+            btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.VISIBLE);
         } else {
-            v.findViewById(R.id.btnBuyNow).setOnClickListener(view -> showPaymentMethodDialog(p));
-            v.findViewById(R.id.btnAddToCart).setOnClickListener(view -> {
-                CartManager.getInstance().addToCart(p);
-                updateProfileLists();
-                Toast.makeText(this, p.getName() + " añadido al carrito", Toast.LENGTH_SHORT).show();
-            });
+            btnBuy.setVisibility(View.VISIBLE); btnCart.setVisibility(View.VISIBLE);
+            btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.GONE);
         }
+
+        btnBuy.setOnClickListener(view -> confirmPurchase(p));
+        btnCart.setOnClickListener(view -> {
+            CartManager.getInstance().addToCart(p);
+            updateProfileLists();
+            Toast.makeText(this, "Añadido", Toast.LENGTH_SHORT).show();
+        });
+
+        btnEdit.setOnClickListener(view -> showAddProductDialog(p));
+        btnDel.setOnClickListener(view -> {
+            new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
+                .setPositiveButton("Sí", (d, w) -> {
+                    productCatalog.remove(p);
+                    applyFilters();
+                    Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
+                }).setNegativeButton("No", null).show();
+        });
 
         v.setOnClickListener(view -> showSpecs(p));
         container.addView(v);
     }
 
-    private void showPaymentMethodDialog(Product p) {
-        String[] options = {"Efectivo", "Tarjeta de Crédito/Débito"};
-        new AlertDialog.Builder(this)
-                .setTitle("Seleccionar Método de Pago")
-                .setItems(options, (dialog, which) -> {
-                    String method = options[which];
-                    confirmPurchase(p, method);
-                })
-                .show();
+    private void showAddProductDialog(@Nullable Product existingProduct) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(existingProduct == null ? "Nuevo Producto" : "Modificar Producto");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
+
+        // Selector de Imagen
+        tempDialogImageView = new ImageView(this);
+        tempDialogImageView.setLayoutParams(new LinearLayout.LayoutParams(200, 200));
+        tempDialogImageView.setImageResource(R.mipmap.ic_launcher);
+        tempDialogImageView.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(intent, PICK_PRODUCT_IMAGE);
+        });
+        layout.addView(tempDialogImageView);
+        TextView tvLabel = new TextView(this); tvLabel.setText("Pulsa arriba para cambiar foto");
+        tvLabel.setGravity(Gravity.CENTER_HORIZONTAL); layout.addView(tvLabel);
+
+        EditText etName = new EditText(this); etName.setHint("Nombre"); layout.addView(etName);
+        EditText etPrice = new EditText(this); etPrice.setHint("Precio"); etPrice.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); layout.addView(etPrice);
+        EditText etDesc = new EditText(this); etDesc.setHint("Descripción Corta"); layout.addView(etDesc);
+        EditText etSpecs = new EditText(this); etSpecs.setHint("Especificaciones"); layout.addView(etSpecs);
+
+        Spinner spnCat = new Spinner(this);
+        String[] cats = {"Alta", "Media", "Baja", "Gaming", "Inicio"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, cats);
+        spnCat.setAdapter(adapter);
+        layout.addView(spnCat);
+
+        selectedProductImageUri = null;
+        if (existingProduct != null) {
+            etName.setText(existingProduct.getName());
+            etPrice.setText(String.valueOf(existingProduct.getPrice()));
+            etDesc.setText(existingProduct.getDescription());
+            etSpecs.setText(existingProduct.getSpecs());
+            if (existingProduct.getImageUri() != null) {
+                selectedProductImageUri = Uri.parse(existingProduct.getImageUri());
+                tempDialogImageView.setImageURI(selectedProductImageUri);
+            } else {
+                tempDialogImageView.setImageResource(existingProduct.getImageResource());
+            }
+            int pos = adapter.getPosition(existingProduct.getCategory());
+            if (pos >= 0) spnCat.setSelection(pos);
+        }
+
+        builder.setView(layout);
+        builder.setPositiveButton("Guardar", (dialog, which) -> {
+            try {
+                String name = etName.getText().toString();
+                double price = Double.parseDouble(etPrice.getText().toString());
+                String desc = etDesc.getText().toString();
+                String specs = etSpecs.getText().toString();
+                String cat = spnCat.getSelectedItem().toString();
+
+                if (existingProduct != null) productCatalog.remove(existingProduct);
+                
+                if (selectedProductImageUri != null) {
+                    productCatalog.add(new Product(name, cat, price, desc, specs, selectedProductImageUri.toString()));
+                } else {
+                    int resId = (existingProduct != null) ? existingProduct.getImageResource() : R.mipmap.ic_launcher;
+                    productCatalog.add(new Product(name, cat, price, desc, specs, resId));
+                }
+                
+                applyFilters();
+                Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Error en los datos", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancelar", null);
+        builder.show();
     }
 
-    private void confirmPurchase(Product p, String method) {
-        new AlertDialog.Builder(this)
-                .setTitle("Confirmar Compra")
-                .setMessage("¿Deseas comprar " + p.getName() + " por $" + p.getPrice() + " usando " + method + "?")
-                .setPositiveButton("Confirmar", (dialog, which) -> {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+            if (requestCode == PICK_PRODUCT_IMAGE && tempDialogImageView != null) {
+                selectedProductImageUri = data.getData();
+                tempDialogImageView.setImageURI(selectedProductImageUri);
+                // Dar permisos persistentes si es necesario (para que la imagen no desaparezca al reiniciar)
+                getContentResolver().takePersistableUriPermission(selectedProductImageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
+        }
+    }
+
+    private void setupProfile() {
+        TextView tvEmail = findViewById(R.id.user_email_display);
+        if (isGuest) tvEmail.setText("Modo Explorador");
+        else tvEmail.setText(userEmail);
+        updateProfileLists();
+    }
+
+    private void confirmPurchase(Product p) {
+        new AlertDialog.Builder(this).setTitle("Compra").setMessage("¿Comprar " + p.getName() + "?")
+                .setPositiveButton("Sí", (d, w) -> {
                     CartManager.getInstance().addToPurchased(p);
                     updateProfileLists();
-                    Toast.makeText(this, "¡Compra exitosa!", Toast.LENGTH_LONG).show();
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
+                }).show();
     }
 
     private void showCartDialog() {
-        if (isGuest) {
-            Toast.makeText(this, "Modo Explorador: Inicia sesión para usar el carrito", Toast.LENGTH_SHORT).show();
-            return;
+        List<Product> items = CartManager.getInstance().getCartItems();
+        if (items.isEmpty()) { Toast.makeText(this, "Vacio", Toast.LENGTH_SHORT).show(); return; }
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle("Carrito");
+        LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(40,40,40,40);
+        for (Product p : items) {
+            TextView t = new TextView(this); t.setText("🛒 " + p.getName() + " - $" + p.getPrice());
+            l.addView(t);
         }
-        
-        if (CartManager.getInstance().getCartItems().isEmpty()) {
-            Toast.makeText(this, "El carrito está vacío", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Tu Carrito JEFFPHONE");
-
-        LinearLayout mainLayout = new LinearLayout(this);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainLayout.setPadding(40, 40, 40, 40);
-
-        LinearLayout itemsContainer = new LinearLayout(this);
-        itemsContainer.setOrientation(LinearLayout.VERTICAL);
-
-        TextView tvTotal = new TextView(this);
-        tvTotal.setTextSize(18);
-        tvTotal.setTextColor(getResources().getColor(android.R.color.black));
-        tvTotal.setGravity(Gravity.END);
-        tvTotal.setPadding(0, 20, 0, 0);
-
-        builder.setView(mainLayout);
-        builder.setPositiveButton("Pagar Todo", (d, w) -> {
-            for (Product p : new ArrayList<>(CartManager.getInstance().getCartItems())) {
-                CartManager.getInstance().addToPurchased(p);
-            }
-            CartManager.getInstance().clearCart();
-            updateProfileLists();
-            Toast.makeText(this, "¡Gracias por tu compra!", Toast.LENGTH_LONG).show();
-        });
-        builder.setNegativeButton("Cerrar", null);
-
-        AlertDialog dialog = builder.create();
-        updateCartDialogUI(itemsContainer, tvTotal, dialog);
-        mainLayout.addView(itemsContainer);
-        mainLayout.addView(tvTotal);
-        dialog.show();
-    }
-
-    private void updateCartDialogUI(LinearLayout container, TextView totalTv, AlertDialog dialog) {
-        container.removeAllViews();
-        List<Product> cartItems = CartManager.getInstance().getCartItems();
-
-        if (cartItems.isEmpty()) {
-            dialog.dismiss();
-            return;
-        }
-
-        double total = 0;
-        for (Product p : cartItems) {
-            LinearLayout itemRow = new LinearLayout(this);
-            itemRow.setOrientation(LinearLayout.HORIZONTAL);
-            itemRow.setGravity(Gravity.CENTER_VERTICAL);
-            itemRow.setPadding(0, 10, 0, 10);
-
-            TextView tv = new TextView(this);
-            tv.setText("🛒 " + p.getName() + " - $" + p.getPrice());
-            tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-            tv.setTextColor(getResources().getColor(android.R.color.black));
-
-            Button btnRemove = new Button(this);
-            btnRemove.setText("X");
-            btnRemove.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getResources().getColor(android.R.color.holo_red_dark)));
-            btnRemove.setTextColor(getResources().getColor(android.R.color.white));
-            btnRemove.setLayoutParams(new LinearLayout.LayoutParams(120, 100));
-
-            btnRemove.setOnClickListener(v -> {
-                CartManager.getInstance().removeFromCart(p);
-                updateProfileLists();
-                updateCartDialogUI(container, totalTv, dialog);
-                Toast.makeText(this, "Eliminado del carrito", Toast.LENGTH_SHORT).show();
-            });
-
-            itemRow.addView(tv);
-            itemRow.addView(btnRemove);
-            container.addView(itemRow);
-            total += p.getPrice();
-        }
-        totalTv.setText("Total a pagar: $" + String.format(Locale.US, "%.2f", total));
+        b.setView(l); b.setPositiveButton("Cerrar", null); b.show();
     }
 
     private void updateProfileLists() {
-        LinearLayout cartContainer = findViewById(R.id.cart_items_container);
-        LinearLayout purchasedContainer = findViewById(R.id.purchased_items_container);
-        
-        if (cartContainer == null || purchasedContainer == null) return;
-
-        cartContainer.removeAllViews();
+        LinearLayout cartC = findViewById(R.id.cart_items_container);
+        LinearLayout purchC = findViewById(R.id.purchased_items_container);
+        if (cartC == null || purchC == null) return;
+        cartC.removeAllViews();
         for (Product p : CartManager.getInstance().getCartItems()) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-
-            TextView tv = new TextView(this);
-            tv.setText("🛒 " + p.getName() + " - $" + p.getPrice());
-            tv.setTextColor(getResources().getColor(android.R.color.black));
-            tv.setPadding(0, 8, 0, 8);
-            tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-            Button btnDel = new Button(this);
-            btnDel.setText("X");
-            btnDel.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getResources().getColor(android.R.color.holo_red_dark)));
-            btnDel.setTextColor(getResources().getColor(android.R.color.white));
-            btnDel.setLayoutParams(new LinearLayout.LayoutParams(100, 80));
-            btnDel.setOnClickListener(v -> {
-                CartManager.getInstance().removeFromCart(p);
-                updateProfileLists();
-            });
-
-            row.addView(tv);
-            row.addView(btnDel);
-            cartContainer.addView(row);
+            TextView tv = new TextView(this); tv.setText("🛒 " + p.getName()); cartC.addView(tv);
         }
-
-        purchasedContainer.removeAllViews();
+        purchC.removeAllViews();
         for (Product p : CartManager.getInstance().getPurchasedItems()) {
-            TextView tv = new TextView(this);
-            tv.setText("✅ " + p.getName() + " - $" + p.getPrice());
-            tv.setTextColor(getResources().getColor(android.R.color.black));
-            tv.setPadding(0, 8, 0, 8);
-            purchasedContainer.addView(tv);
+            TextView tv = new TextView(this); tv.setText("✅ " + p.getName()); purchC.addView(tv);
         }
     }
 
     private void showSpecs(Product p) {
+        String detail = "Descripción:\n" + p.getDescription() + 
+                       "\n\nEspecificaciones Técnicas:\n" + p.getSpecs();
+                       
         new AlertDialog.Builder(this)
-                .setTitle(p.getName())
-                .setMessage(p.getSpecs() + "\n\nPrecio: $" + p.getPrice())
-                .setPositiveButton("Cerrar", null)
-                .show();
+            .setTitle(p.getName())
+            .setMessage(detail)
+            .setPositiveButton("Cerrar", null)
+            .show();
     }
 }

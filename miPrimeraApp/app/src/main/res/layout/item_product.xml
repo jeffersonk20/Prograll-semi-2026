@@ -72,23 +72,47 @@
             <Button
                 android:id="@+id/btnBuyNow"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_height="35dp"
                 android:text="Comprar"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:backgroundTint="#10B981"
                 android:textColor="#FFFFFF"
                 android:padding="0dp"
-                android:layout_marginBottom="4dp"/>
+                android:layout_marginBottom="2dp"/>
 
             <Button
                 android:id="@+id/btnAddToCart"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:text="Añadir"
-                android:textSize="10sp"
+                android:layout_height="35dp"
+                android:text="Carrito"
+                android:textSize="9sp"
                 android:backgroundTint="#3B82F6"
                 android:textColor="#FFFFFF"
-                android:padding="0dp"/>
+                android:padding="0dp"
+                android:layout_marginBottom="2dp"/>
+
+            <Button
+                android:id="@+id/btnModify"
+                android:layout_width="wrap_content"
+                android:layout_height="35dp"
+                android:text="Editar"
+                android:textSize="9sp"
+                android:backgroundTint="#F59E0B"
+                android:textColor="#FFFFFF"
+                android:padding="0dp"
+                android:visibility="gone"
+                android:layout_marginBottom="2dp"/>
+
+            <Button
+                android:id="@+id/btnDelete"
+                android:layout_width="wrap_content"
+                android:layout_height="35dp"
+                android:text="Borrar"
+                android:textSize="9sp"
+                android:backgroundTint="#EF4444"
+                android:textColor="#FFFFFF"
+                android:padding="0dp"
+                android:visibility="gone"/>
 
         </LinearLayout>
 
