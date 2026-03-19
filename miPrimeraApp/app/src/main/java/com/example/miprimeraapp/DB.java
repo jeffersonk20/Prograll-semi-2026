@@ -10,50 +10,56 @@ import androidx.annotation.Nullable;
 public class DB extends SQLiteOpenHelper {
     private static final String DATABASE_NAME="amigos";
     private static final int DATABASE_VERSION=1;
-    private static final String SQLdb="CREATE TABLE amigos (idAmigo INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, direccion TEXT, telefono TEXT, email TEXT, dui TEXT, urlFoto TEXT)";
-
-    public DB(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version) {
-        super(context, DATABASE_NAME, factory, version);
+    private static final String SQLdb = "CREATE TABLE amigos (idAmigo INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, direccion TEXT, telefono TEXT, email TEXT, dui TEXT, urlFoto TEXT)";
+    public DB(@Nullable Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
-
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
         sqLiteDatabase.execSQL(SQLdb);
-
     }
-
     @Override
-    public void onUpgrade(SQLiteDatabase db, int i, int i1) {
-
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+        //actualizar la base de datos
     }
     public String administrar_amigos(String accion, String[] datos){
         try{
-            SQLiteDatabase db = getWritableDatabase();
-            String mensaje= "ok", sql="";
+            SQLiteDatabase db= getWritableDatabase();
+            String mensaje="ok", sql="";
             switch (accion){
-                case "Nuevo":
-                    sql="INSERT INTO amigos (nombre, direccion, telefono, email, dui, urlFoto) VALUES('"+datos[1]+"', '"+datos[2]+"', '"+datos[3]+"', '"+datos[4]+"', '"+datos[5]+"', '"+datos[6]+"')";
+                case "nuevo":
+                    sql="INSERT INTO amigos(nombre,direccion,telefono,email,dui,urlFoto) VALUES(" +
+                            "'"+ datos[1] +"',"+
+                            "'"+ datos[2] +"',"+
+                            "'"+ datos[3] +"',"+
+                            "'"+ datos[4] +"',"+
+                            "'"+ datos[5] +"',"+
+                            "'"+ datos[6] +"'"+
+                            ")";
                     break;
-
-                case "Modificar":
-                    sql="UPDATE amigos SET nombre='"+datos[1]+"', direccion='"+datos[2]+"', telefono='"+datos[3]+"', email='"+datos[4]+"', dui='"+datos[5]+"', urlFoto='"+datos[6]+"' WHERE idAmigo='"+datos[0] +"'";
+                case "modificar":
+                    sql="UPDATE amigos SET " +
+                            "nombre='"+datos[1]+"',"+
+                            "direccion='"+datos[2]+"',"+
+                            "telefono='"+datos[3]+"',"+
+                            "email='"+datos[4]+"',"+
+                            "dui='"+datos[5]+"',"+
+                            "urlFoto='"+datos[6]+"'"+
+                            "WHERE idAmigo='"+datos[0]+"'";
                     break;
-
-                case "Eliminar":
+                case "eliminar":
                     sql="DELETE FROM amigos WHERE idAmigo='"+datos[0]+"'";
                     break;
-
-
+            }
+            db.execSQL(sql);
+            db.close();
+            return mensaje;
+        } catch (Exception e) {
+            return e.getMessage();
         }
-        db.execSQL(sql);
-        db.close();
-        return mensaje;
-    }catch(Exception e){
-        return e.getMessage();
     }
-    }
-    public Cursor listar_amigos(){
+    public Cursor lista_amigos(){
         SQLiteDatabase db = getReadableDatabase();
         return db.rawQuery("SELECT * FROM amigos", null);
-        }
+    }
 }
