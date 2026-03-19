@@ -1,10 +1,11 @@
 package com.example.miprimeraapp;
 
-import android.content.Context;
+import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.InputType;
@@ -21,15 +22,19 @@ import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -38,8 +43,11 @@ public class MainActivity extends AppCompatActivity {
     private boolean isGuest = false;
     private String userEmail = "";
     private TabHost tbh;
-    private static final int PICK_IMAGE = 100;
     private static final int PICK_PRODUCT_IMAGE = 101;
+    private static final int TAKE_PRODUCT_PHOTO = 102;
+    private static final int PICK_PROFILE_IMAGE = 103;
+    private static final int TAKE_PROFILE_PHOTO = 104;
+    private static final int REQUEST_CAMERA_PERMISSION = 200;
 
     // Modos de administración
     private enum AdminMode { NORMAL, MODIFY, DELETE }
@@ -49,24 +57,31 @@ public class MainActivity extends AppCompatActivity {
     private String currentPriceFilter = "Todos";
     private EditText searchEdit;
 
-    // Auxiliar para imagen de producto
+    // Auxiliares para imágenes
     private ImageView tempDialogImageView;
+    private ImageView profileImageView;
     private Uri selectedProductImageUri;
+    private Uri cameraPhotoUri;
 
     // Lista dinámica de productos (Catálogo)
     private List<Product> productCatalog = new ArrayList<>();
+    private ProductDao productDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        productDao = AppDatabase.getInstance(this).productDao();
+
         isGuest = getIntent().getBooleanExtra("isGuest", false);
         userEmail = getIntent().getStringExtra("userEmail");
 
         searchEdit = findViewById(R.id.search);
+        profileImageView = findViewById(R.id.profile_image);
+        
         setupTabs();
-        loadProducts(); // Cargar productos guardados o inicializar si no hay
+        loadProducts(); 
         setupProfile();
         setupFilters();
 
@@ -108,26 +123,16 @@ public class MainActivity extends AppCompatActivity {
         refreshAllContainers(); 
     }
 
-    private void saveProducts() {
-        SharedPreferences sharedPreferences = getSharedPreferences("product_prefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        Gson gson = new Gson();
-        String json = gson.toJson(productCatalog);
-        editor.putString("product_list", json);
-        editor.apply();
-    }
-
     private void loadProducts() {
-        SharedPreferences sharedPreferences = getSharedPreferences("product_prefs", Context.MODE_PRIVATE);
-        Gson gson = new Gson();
-        String json = sharedPreferences.getString("product_list", null);
-        Type type = new TypeToken<ArrayList<Product>>() {}.getType();
-        productCatalog = gson.fromJson(json, type);
+        productCatalog = productDao.getAll();
 
         if (productCatalog == null || productCatalog.isEmpty()) {
             productCatalog = new ArrayList<>();
             initCatalog();
-            saveProducts();
+            for (Product p : productCatalog) {
+                productDao.insert(p);
+            }
+            productCatalog = productDao.getAll();
         }
     }
 
@@ -191,11 +196,11 @@ public class MainActivity extends AppCompatActivity {
     private void setupTabs() {
         tbh = findViewById(R.id.tabHost);
         tbh.setup();
-        addTab("Inicio", R.id.tab_inicio, "🏠");
-        addTab("Alta", R.id.tab_gamaAlta, "💎");
-        addTab("Media", R.id.tab_gamaMedia, "📱");
-        addTab("Baja", R.id.tab_gamaBaja, "🔋");
-        addTab("Gaming", R.id.tab_gaming, "🎮");
+        addTab("Inicio", R.id.tab_inicio, "🏠Home");
+        addTab("Alta", R.id.tab_gamaAlta, "Gama Alta");
+        addTab("Media", R.id.tab_gamaMedia, "Gama Media");
+        addTab("Baja", R.id.tab_gamaBaja, "Gama Baja");
+        addTab("Gaming", R.id.tab_gaming, "Gaming");
         addTab("Profile", R.id.tab_profile, "👤");
     }
 
@@ -285,8 +290,8 @@ public class MainActivity extends AppCompatActivity {
         btnDel.setOnClickListener(view -> {
             new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
                 .setPositiveButton("Sí", (d, w) -> {
-                    productCatalog.remove(p);
-                    saveProducts(); // Guardar cambios al eliminar
+                    productDao.delete(p);
+                    productCatalog = productDao.getAll();
                     applyFilters();
                     Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
                 }).setNegativeButton("No", null).show();
@@ -304,17 +309,12 @@ public class MainActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 20, 50, 20);
 
-        // Selector de Imagen
         tempDialogImageView = new ImageView(this);
         tempDialogImageView.setLayoutParams(new LinearLayout.LayoutParams(200, 200));
         tempDialogImageView.setImageResource(R.mipmap.ic_launcher);
-        tempDialogImageView.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("image/*");
-            startActivityForResult(intent, PICK_PRODUCT_IMAGE);
-        });
+        tempDialogImageView.setOnClickListener(v -> showImageSelectionDialog(true));
         layout.addView(tempDialogImageView);
+        
         TextView tvLabel = new TextView(this); tvLabel.setText("Pulsa arriba para cambiar foto");
         tvLabel.setGravity(Gravity.CENTER_HORIZONTAL); layout.addView(tvLabel);
 
@@ -354,16 +354,29 @@ public class MainActivity extends AppCompatActivity {
                 String specs = etSpecs.getText().toString();
                 String cat = spnCat.getSelectedItem().toString();
 
-                if (existingProduct != null) productCatalog.remove(existingProduct);
-                
-                if (selectedProductImageUri != null) {
-                    productCatalog.add(new Product(name, cat, price, desc, specs, selectedProductImageUri.toString()));
+                Product p;
+                if (existingProduct != null) {
+                    p = existingProduct;
+                    p.setName(name);
+                    p.setPrice(price);
+                    p.setDescription(desc);
+                    p.setSpecs(specs);
+                    p.setCategory(cat);
+                    if (selectedProductImageUri != null) {
+                        p.setImageUri(selectedProductImageUri.toString());
+                        p.setImageResource(0);
+                    }
+                    productDao.update(p);
                 } else {
-                    int resId = (existingProduct != null) ? existingProduct.getImageResource() : R.mipmap.ic_launcher;
-                    productCatalog.add(new Product(name, cat, price, desc, specs, resId));
+                    if (selectedProductImageUri != null) {
+                        p = new Product(name, cat, price, desc, specs, selectedProductImageUri.toString());
+                    } else {
+                        p = new Product(name, cat, price, desc, specs, R.mipmap.ic_launcher);
+                    }
+                    productDao.insert(p);
                 }
                 
-                saveProducts(); // Guardar cambios al agregar/modificar
+                productCatalog = productDao.getAll();
                 applyFilters();
                 Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
@@ -374,21 +387,94 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private void showImageSelectionDialog(boolean isProduct) {
+        String[] options = {"Elegir de Galería", "Tomar Foto"};
+        new AlertDialog.Builder(this)
+                .setTitle("Seleccionar Imagen")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("image/*");
+                        startActivityForResult(intent, isProduct ? PICK_PRODUCT_IMAGE : PICK_PROFILE_IMAGE);
+                    } else {
+                        checkCameraPermissionAndTakePhoto(isProduct);
+                    }
+                }).show();
+    }
+
+    private void checkCameraPermissionAndTakePhoto(boolean isProduct) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, isProduct ? TAKE_PRODUCT_PHOTO : TAKE_PROFILE_PHOTO);
+        } else {
+            takePhoto(isProduct);
+        }
+    }
+
+    private void takePhoto(boolean isProduct) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error al crear archivo de imagen", Toast.LENGTH_SHORT).show();
+            }
+            if (photoFile != null) {
+                cameraPhotoUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
+                startActivityForResult(takePictureIntent, isProduct ? TAKE_PRODUCT_PHOTO : TAKE_PROFILE_PHOTO);
+            }
+        } else {
+            Toast.makeText(this, "No se encontró aplicación de cámara", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        return File.createTempFile(imageFileName, ".jpg", storageDir);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (requestCode == TAKE_PRODUCT_PHOTO) takePhoto(true);
+            else if (requestCode == TAKE_PROFILE_PHOTO) takePhoto(false);
+        } else {
+            Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
-            if (requestCode == PICK_PRODUCT_IMAGE && tempDialogImageView != null) {
+        if (resultCode == RESULT_OK) {
+            if (requestCode == PICK_PRODUCT_IMAGE && data != null && data.getData() != null) {
                 selectedProductImageUri = data.getData();
                 tempDialogImageView.setImageURI(selectedProductImageUri);
-                // Dar permisos persistentes para que la imagen no desaparezca al reiniciar
-                try {
-                    int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
-                    getContentResolver().takePersistableUriPermission(selectedProductImageUri, takeFlags);
-                } catch (SecurityException e) {
-                    e.printStackTrace();
-                }
+                persistUri(selectedProductImageUri);
+            } else if (requestCode == TAKE_PRODUCT_PHOTO) {
+                selectedProductImageUri = cameraPhotoUri;
+                tempDialogImageView.setImageURI(selectedProductImageUri);
+            } else if (requestCode == PICK_PROFILE_IMAGE && data != null && data.getData() != null) {
+                Uri profileUri = data.getData();
+                profileImageView.setImageURI(profileUri);
+                persistUri(profileUri);
+            } else if (requestCode == TAKE_PROFILE_PHOTO) {
+                profileImageView.setImageURI(cameraPhotoUri);
             }
+        }
+    }
+
+    private void persistUri(Uri uri) {
+        try {
+            int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+            getContentResolver().takePersistableUriPermission(uri, takeFlags);
+        } catch (SecurityException e) {
+            e.printStackTrace();
         }
     }
 
@@ -396,6 +482,9 @@ public class MainActivity extends AppCompatActivity {
         TextView tvEmail = findViewById(R.id.user_email_display);
         if (isGuest) tvEmail.setText("Modo Explorador");
         else tvEmail.setText(userEmail);
+        
+        findViewById(R.id.btn_change_photo).setOnClickListener(v -> showImageSelectionDialog(false));
+
         updateProfileLists();
     }
 

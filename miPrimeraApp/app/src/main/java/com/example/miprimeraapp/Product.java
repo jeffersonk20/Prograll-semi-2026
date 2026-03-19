@@ -1,15 +1,20 @@
 package com.example.miprimeraapp;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "products")
 public class Product {
+    @PrimaryKey(autoGenerate = true)
+    private int id;
     private String name;
     private String category;
     private double price;
     private String description;
     private String specs; 
     private int imageResource;
-    private String imageUri; // Added to support custom images
+    private String imageUri;
 
-    // No-argument constructor for Gson
     public Product() {
     }
 
@@ -33,6 +38,8 @@ public class Product {
         this.imageUri = imageUri;
     }
 
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
     public String getName() { return name; }
     public String getCategory() { return category; }
     public double getPrice() { return price; }
