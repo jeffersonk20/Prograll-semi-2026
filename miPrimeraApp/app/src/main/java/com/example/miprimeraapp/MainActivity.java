@@ -3,6 +3,7 @@ package com.example.miprimeraapp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,6 +31,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.google.android.material.imageview.ShapeableImageView;
+import com.google.android.material.shape.CornerFamily;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -47,43 +51,47 @@ public class MainActivity extends AppCompatActivity {
     private static final int TAKE_PRODUCT_PHOTO = 102;
     private static final int PICK_PROFILE_IMAGE = 103;
     private static final int TAKE_PROFILE_PHOTO = 104;
+    private static final int PICK_PRODUCT_IMAGE2 = 105;
+    private static final int TAKE_PRODUCT_PHOTO2 = 106;
+    private static final int PICK_PRODUCT_IMAGE3 = 107;
+    private static final int TAKE_PRODUCT_PHOTO3 = 108;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
 
     // Modos de administración
     private enum AdminMode { NORMAL, MODIFY, DELETE }
     private AdminMode currentMode = AdminMode.NORMAL;
 
-    // Filtros
-    private String currentPriceFilter = "Todos";
     private EditText searchEdit;
 
     // Auxiliares para imágenes
     private ImageView tempDialogImageView;
+    private ImageView tempDialogImageView2;
+    private ImageView tempDialogImageView3;
     private ImageView profileImageView;
     private Uri selectedProductImageUri;
+    private Uri selectedProductImageUri2;
+    private Uri selectedProductImageUri3;
     private Uri cameraPhotoUri;
 
     // Lista dinámica de productos (Catálogo)
     private List<Product> productCatalog = new ArrayList<>();
-    private ProductDao productDao;
+    private DB dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        productDao = AppDatabase.getInstance(this).productDao();
+        dbHelper = new DB(this);
 
         isGuest = getIntent().getBooleanExtra("isGuest", false);
         userEmail = getIntent().getStringExtra("userEmail");
 
         searchEdit = findViewById(R.id.search);
-        profileImageView = findViewById(R.id.profile_image);
         
         setupTabs();
         loadProducts(); 
         setupProfile();
-        setupFilters();
 
         findViewById(R.id.cart).setOnClickListener(v -> showCartDialog());
         findViewById(R.id.profile_btn).setOnClickListener(v -> tbh.setCurrentTabByTag("Profile"));
@@ -124,41 +132,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadProducts() {
-        productCatalog = productDao.getAll();
-
-        if (productCatalog == null || productCatalog.isEmpty()) {
-            productCatalog = new ArrayList<>();
-            initCatalog();
-            for (Product p : productCatalog) {
-                productDao.insert(p);
-            }
-            productCatalog = productDao.getAll();
-        }
-    }
-
-    private void setupFilters() {
-        View.OnClickListener filterClick = v -> {
-            findViewById(R.id.btnFilterAll).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-            findViewById(R.id.btnFilterCheap).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-            findViewById(R.id.btnFilterMid).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-            findViewById(R.id.btnFilterPremium).setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-
-            v.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_dark));
-
-            if (v.getId() == R.id.btnFilterAll) currentPriceFilter = "Todos";
-            else if (v.getId() == R.id.btnFilterCheap) currentPriceFilter = "Económicos";
-            else if (v.getId() == R.id.btnFilterMid) currentPriceFilter = "Media";
-            else if (v.getId() == R.id.btnFilterPremium) currentPriceFilter = "Premium";
-
-            applyFilters();
-        };
-
-        findViewById(R.id.btnFilterAll).setOnClickListener(filterClick);
-        findViewById(R.id.btnFilterCheap).setOnClickListener(filterClick);
-        findViewById(R.id.btnFilterMid).setOnClickListener(filterClick);
-        findViewById(R.id.btnFilterPremium).setOnClickListener(filterClick);
+        productCatalog.clear();
+        Cursor cursor = dbHelper.lista_productos();
         
-        findViewById(R.id.btnFilterAll).setBackgroundTintList(getColorStateList(android.R.color.holo_blue_dark));
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                Product p = new Product();
+                p.setId(cursor.getInt(0));
+                p.setName(cursor.getString(1));
+                p.setCategory(cursor.getString(2));
+                p.setPrice(cursor.getDouble(3));
+                p.setDescription(cursor.getString(4));
+                p.setSpecs(cursor.getString(5));
+                p.setImageUri(cursor.getString(6));
+                if (cursor.getColumnCount() > 7) p.setImageUri2(cursor.getString(7));
+                if (cursor.getColumnCount() > 8) p.setImageUri3(cursor.getString(8));
+                productCatalog.add(p);
+            } while (cursor.moveToNext());
+            cursor.close();
+        }
+
+        if (productCatalog.isEmpty()) {
+            initCatalog();
+            // Guardar iniciales en la nueva DB
+            for (Product p : productCatalog) {
+                String[] datos = {
+                    "0", p.getName(), p.getCategory(), String.valueOf(p.getPrice()), 
+                    p.getDescription(), p.getSpecs(), 
+                    p.getImageUri() != null ? p.getImageUri() : "",
+                    p.getImageUri2() != null ? p.getImageUri2() : "",
+                    p.getImageUri3() != null ? p.getImageUri3() : ""
+                };
+                dbHelper.administrar_productos("nuevo", datos);
+            }
+            loadProducts(); // Recargar para tener IDs reales
+        }
     }
 
     private void applyFilters() {
@@ -166,15 +174,10 @@ public class MainActivity extends AppCompatActivity {
         List<Product> filtered = new ArrayList<>();
 
         for (Product p : productCatalog) {
-            boolean matchesText = p.getName().toLowerCase().contains(query) || 
-                                 p.getDescription().toLowerCase().contains(query);
+            boolean matchesName = p.getName().toLowerCase().contains(query);
+            boolean matchesPrice = String.valueOf(p.getPrice()).contains(query);
             
-            boolean matchesPrice = true;
-            if (currentPriceFilter.equals("Económicos")) matchesPrice = p.getPrice() < 300;
-            else if (currentPriceFilter.equals("Media")) matchesPrice = p.getPrice() >= 300 && p.getPrice() <= 800;
-            else if (currentPriceFilter.equals("Premium")) matchesPrice = p.getPrice() > 800;
-
-            if (matchesText && matchesPrice) {
+            if (matchesName || matchesPrice) {
                 filtered.add(p);
             }
         }
@@ -212,26 +215,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initCatalog() {
-        int icon = R.mipmap.ic_launcher;
         productCatalog.add(new Product("iPhone 15 Pro Max", "Alta", 1399.0, 
             "El tope de gama de Apple con acabado en titanio de grado aeroespacial.", 
-            "• Chip A17 Pro (3nm)\n• Pantalla Super Retina XDR OLED 6.7\"\n• Sistema de Cámara Pro 48MP (Teleobjetivo x5)\n• Puerto USB-C 3.0\n• Botón de Acción personalizable.", icon));
+            "• Chip A17 Pro (3nm)\n• Pantalla Super Retina XDR OLED 6.7\"\n• Sistema de Cámara Pro 48MP (Teleobjetivo x5)\n• Puerto USB-C 3.0\n• Botón de Acción personalizable.", ""));
 
         productCatalog.add(new Product("Samsung S24 Ultra", "Alta", 1299.0, 
             "El smartphone definitivo impulsado por Inteligencia Artificial Avanzada.", 
-            "• Snapdragon 8 Gen 3 for Galaxy\n• Pantalla 6.8\" Dynamic AMOLED 2X QHD+\n• S-Pen de baja latencia integrado\n• Cámara principal de 200MP\n• Funciones Galaxy AI integradas.", icon));
+            "• Snapdragon 8 Gen 3 for Galaxy\n• Pantalla 6.8\" Dynamic AMOLED 2X QHD+\n• S-Pen de baja latencia integrado\n• Cámara principal de 200MP\n• Funciones Galaxy AI integradas.", ""));
 
         productCatalog.add(new Product("Galaxy A54 5G", "Media", 450.0, 
             "Equilibrio perfecto entre diseño premium y rendimiento excepcional.", 
-            "• Procesador Exynos 1380\n• Pantalla Super AMOLED 120Hz 6.4\"\n• 8GB RAM + 128GB Almacenamiento\n• Cámara 50MP con OIS\n• Certificación IP67 agua/polvo.", icon));
+            "• Procesador Exynos 1380\n• Pantalla Super AMOLED 120Hz 6.4\"\n• 8GB RAM + 128GB Almacenamiento\n• Cámara 50MP con OIS\n• Certificación IP67 agua/polvo.", ""));
 
         productCatalog.add(new Product("Redmi Note 13", "Baja", 199.0, 
             "La mejor opción económica con pantalla de calidad y carga ultra rápida.", 
-            "• Pantalla AMOLED 120Hz Full HD+\n• Cámara triple de 108MP\n• Carga rápida de 33W (cargador incluido)\n• Batería de 5000mAh\n• Sensor de huellas bajo pantalla.", icon));
+            "• Pantalla AMOLED 120Hz Full HD+\n• Cámara triple de 108MP\n• Carga rápida de 33W (cargador incluido)\n• Batería de 5000mAh\n• Sensor de huellas bajo pantalla.", ""));
 
         productCatalog.add(new Product("Asus ROG Phone 8", "Gaming", 1099.0, 
             "Potencia extrema y diseño optimizado para los jugadores más exigentes.", 
-            "• Snapdragon 8 Gen 3\n• Pantalla LTPO 165Hz ultra fluida\n• Sistema de enfriamiento AeroActive\n• Gatillos AirTrigger sensibles a la presión\n• Iluminación Aura RGB personalizable.", icon));
+            "• Snapdragon 8 Gen 3\n• Pantalla LTPO 165Hz ultra fluida\n• Sistema de enfriamiento AeroActive\n• Gatillos AirTrigger sensibles a la presión\n• Iluminación Aura RGB personalizable.", ""));
     }
 
     private void refreshAllContainers() {
@@ -239,66 +241,83 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addProductToUI(Product p) {
-        int containerId;
+        String query = searchEdit.getText().toString().trim();
+        List<LinearLayout> containers = new ArrayList<>();
+        
+        // REGLA PARA EL HOME (INICIO):
+        if (!query.isEmpty()) {
+            // Si hay búsqueda, todos al inicio sin importar la gama
+            containers.add(findViewById(R.id.inicio_container));
+        } else if (p.getCategory().equals("Alta") || p.getCategory().equals("Gaming")) {
+            // Si no hay búsqueda, solo Alta y Gaming en el Home
+            containers.add(findViewById(R.id.inicio_container));
+        }
+
+        // REGLA PARA LAS PESTAÑAS ESPECÍFICAS (NO se eliminan las gamas):
         switch (p.getCategory()) {
-            case "Alta": containerId = R.id.gamaAlta_container; break;
-            case "Media": containerId = R.id.gamaMedia_container; break;
-            case "Baja": containerId = R.id.gamaBaja_container; break;
-            case "Gaming": containerId = R.id.gaming_container; break;
-            default: containerId = R.id.inicio_container;
+            case "Alta": containers.add(findViewById(R.id.gamaAlta_container)); break;
+            case "Media": containers.add(findViewById(R.id.gamaMedia_container)); break;
+            case "Baja": containers.add(findViewById(R.id.gamaBaja_container)); break;
+            case "Gaming": containers.add(findViewById(R.id.gaming_container)); break;
+            default: 
+                // Evitar duplicados en el Home si no tiene categoría reconocida
+                LinearLayout inicio = findViewById(R.id.inicio_container);
+                if (!containers.contains(inicio)) containers.add(inicio);
+                break;
         }
 
-        LinearLayout container = findViewById(containerId);
-        if (container == null) return;
+        for (LinearLayout container : containers) {
+            if (container == null) continue;
+            
+            View v = LayoutInflater.from(this).inflate(R.layout.item_product, container, false);
+            ImageView imgView = v.findViewById(R.id.imgProduct);
+            if (p.getImageUri() != null && !p.getImageUri().isEmpty()) {
+                imgView.setImageURI(Uri.parse(p.getImageUri()));
+            } else {
+                imgView.setImageResource(R.mipmap.ic_launcher);
+            }
 
-        View v = LayoutInflater.from(this).inflate(R.layout.item_product, container, false);
-        ImageView imgView = v.findViewById(R.id.imgProduct);
-        if (p.getImageUri() != null) {
-            imgView.setImageURI(Uri.parse(p.getImageUri()));
-        } else {
-            imgView.setImageResource(p.getImageResource());
+            ((TextView) v.findViewById(R.id.txtName)).setText(p.getName());
+            ((TextView) v.findViewById(R.id.txtDescription)).setText(p.getDescription());
+            ((TextView) v.findViewById(R.id.txtPrice)).setText(String.format(Locale.US, "$%.2f", p.getPrice()));
+
+            View btnBuy = v.findViewById(R.id.btnBuyNow);
+            View btnCart = v.findViewById(R.id.btnAddToCart);
+            View btnEdit = v.findViewById(R.id.btnModify);
+            View btnDel = v.findViewById(R.id.btnDelete);
+
+            if (currentMode == AdminMode.MODIFY) {
+                btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
+                btnEdit.setVisibility(View.VISIBLE); btnDel.setVisibility(View.GONE);
+            } else if (currentMode == AdminMode.DELETE) {
+                btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
+                btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.VISIBLE);
+            } else {
+                btnBuy.setVisibility(View.VISIBLE); btnCart.setVisibility(View.VISIBLE);
+                btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.GONE);
+            }
+
+            btnBuy.setOnClickListener(view -> confirmPurchase(p));
+            btnCart.setOnClickListener(view -> {
+                CartManager.getInstance().addToCart(p);
+                updateProfileLists();
+                Toast.makeText(this, "Añadido", Toast.LENGTH_SHORT).show();
+            });
+
+            btnEdit.setOnClickListener(view -> showAddProductDialog(p));
+            btnDel.setOnClickListener(view -> {
+                new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
+                    .setPositiveButton("Sí", (d, w) -> {
+                        dbHelper.administrar_productos("eliminar", new String[]{String.valueOf(p.getId())});
+                        loadProducts();
+                        applyFilters();
+                        Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
+                    }).setNegativeButton("No", null).show();
+            });
+
+            v.setOnClickListener(view -> showSpecs(p));
+            container.addView(v);
         }
-
-        ((TextView) v.findViewById(R.id.txtName)).setText(p.getName());
-        ((TextView) v.findViewById(R.id.txtDescription)).setText(p.getDescription());
-        ((TextView) v.findViewById(R.id.txtPrice)).setText(String.format(Locale.US, "$%.2f", p.getPrice()));
-
-        View btnBuy = v.findViewById(R.id.btnBuyNow);
-        View btnCart = v.findViewById(R.id.btnAddToCart);
-        View btnEdit = v.findViewById(R.id.btnModify);
-        View btnDel = v.findViewById(R.id.btnDelete);
-
-        if (currentMode == AdminMode.MODIFY) {
-            btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
-            btnEdit.setVisibility(View.VISIBLE); btnDel.setVisibility(View.GONE);
-        } else if (currentMode == AdminMode.DELETE) {
-            btnBuy.setVisibility(View.GONE); btnCart.setVisibility(View.GONE);
-            btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.VISIBLE);
-        } else {
-            btnBuy.setVisibility(View.VISIBLE); btnCart.setVisibility(View.VISIBLE);
-            btnEdit.setVisibility(View.GONE); btnDel.setVisibility(View.GONE);
-        }
-
-        btnBuy.setOnClickListener(view -> confirmPurchase(p));
-        btnCart.setOnClickListener(view -> {
-            CartManager.getInstance().addToCart(p);
-            updateProfileLists();
-            Toast.makeText(this, "Añadido", Toast.LENGTH_SHORT).show();
-        });
-
-        btnEdit.setOnClickListener(view -> showAddProductDialog(p));
-        btnDel.setOnClickListener(view -> {
-            new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
-                .setPositiveButton("Sí", (d, w) -> {
-                    productDao.delete(p);
-                    productCatalog = productDao.getAll();
-                    applyFilters();
-                    Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
-                }).setNegativeButton("No", null).show();
-        });
-
-        v.setOnClickListener(view -> showSpecs(p));
-        container.addView(v);
     }
 
     private void showAddProductDialog(@Nullable Product existingProduct) {
@@ -309,13 +328,25 @@ public class MainActivity extends AppCompatActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 20, 50, 20);
 
-        tempDialogImageView = new ImageView(this);
-        tempDialogImageView.setLayoutParams(new LinearLayout.LayoutParams(200, 200));
-        tempDialogImageView.setImageResource(R.mipmap.ic_launcher);
-        tempDialogImageView.setOnClickListener(v -> showImageSelectionDialog(true));
-        layout.addView(tempDialogImageView);
+        LinearLayout imagesLayout = new LinearLayout(this);
+        imagesLayout.setOrientation(LinearLayout.HORIZONTAL);
+        imagesLayout.setGravity(Gravity.CENTER);
+
+        tempDialogImageView = createDialogImageView();
+        tempDialogImageView.setOnClickListener(v -> showImageSelectionDialog(1));
+        imagesLayout.addView(tempDialogImageView);
+
+        tempDialogImageView2 = createDialogImageView();
+        tempDialogImageView2.setOnClickListener(v -> showImageSelectionDialog(2));
+        imagesLayout.addView(tempDialogImageView2);
+
+        tempDialogImageView3 = createDialogImageView();
+        tempDialogImageView3.setOnClickListener(v -> showImageSelectionDialog(3));
+        imagesLayout.addView(tempDialogImageView3);
+
+        layout.addView(imagesLayout);
         
-        TextView tvLabel = new TextView(this); tvLabel.setText("Pulsa arriba para cambiar foto");
+        TextView tvLabel = new TextView(this); tvLabel.setText("Pulsa arriba para cambiar fotos (Principal, Extra 1, Extra 2)");
         tvLabel.setGravity(Gravity.CENTER_HORIZONTAL); layout.addView(tvLabel);
 
         EditText etName = new EditText(this); etName.setHint("Nombre"); layout.addView(etName);
@@ -330,16 +361,24 @@ public class MainActivity extends AppCompatActivity {
         layout.addView(spnCat);
 
         selectedProductImageUri = null;
+        selectedProductImageUri2 = null;
+        selectedProductImageUri3 = null;
         if (existingProduct != null) {
             etName.setText(existingProduct.getName());
             etPrice.setText(String.valueOf(existingProduct.getPrice()));
             etDesc.setText(existingProduct.getDescription());
             etSpecs.setText(existingProduct.getSpecs());
-            if (existingProduct.getImageUri() != null) {
+            if (existingProduct.getImageUri() != null && !existingProduct.getImageUri().isEmpty()) {
                 selectedProductImageUri = Uri.parse(existingProduct.getImageUri());
                 tempDialogImageView.setImageURI(selectedProductImageUri);
-            } else {
-                tempDialogImageView.setImageResource(existingProduct.getImageResource());
+            }
+            if (existingProduct.getImageUri2() != null && !existingProduct.getImageUri2().isEmpty()) {
+                selectedProductImageUri2 = Uri.parse(existingProduct.getImageUri2());
+                tempDialogImageView2.setImageURI(selectedProductImageUri2);
+            }
+            if (existingProduct.getImageUri3() != null && !existingProduct.getImageUri3().isEmpty()) {
+                selectedProductImageUri3 = Uri.parse(existingProduct.getImageUri3());
+                tempDialogImageView3.setImageURI(selectedProductImageUri3);
             }
             int pos = adapter.getPosition(existingProduct.getCategory());
             if (pos >= 0) spnCat.setSelection(pos);
@@ -349,36 +388,33 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton("Guardar", (dialog, which) -> {
             try {
                 String name = etName.getText().toString();
-                double price = Double.parseDouble(etPrice.getText().toString());
+                String price = etPrice.getText().toString();
                 String desc = etDesc.getText().toString();
                 String specs = etSpecs.getText().toString();
                 String cat = spnCat.getSelectedItem().toString();
+                String uri = selectedProductImageUri != null ? selectedProductImageUri.toString() : 
+                            (existingProduct != null ? existingProduct.getImageUri() : "");
+                String uri2 = selectedProductImageUri2 != null ? selectedProductImageUri2.toString() : 
+                            (existingProduct != null ? existingProduct.getImageUri2() : "");
+                String uri3 = selectedProductImageUri3 != null ? selectedProductImageUri3.toString() : 
+                            (existingProduct != null ? existingProduct.getImageUri3() : "");
 
-                Product p;
+                String result;
                 if (existingProduct != null) {
-                    p = existingProduct;
-                    p.setName(name);
-                    p.setPrice(price);
-                    p.setDescription(desc);
-                    p.setSpecs(specs);
-                    p.setCategory(cat);
-                    if (selectedProductImageUri != null) {
-                        p.setImageUri(selectedProductImageUri.toString());
-                        p.setImageResource(0);
-                    }
-                    productDao.update(p);
+                    String[] datos = {String.valueOf(existingProduct.getId()), name, cat, price, desc, specs, uri, uri2, uri3};
+                    result = dbHelper.administrar_productos("modificar", datos);
                 } else {
-                    if (selectedProductImageUri != null) {
-                        p = new Product(name, cat, price, desc, specs, selectedProductImageUri.toString());
-                    } else {
-                        p = new Product(name, cat, price, desc, specs, R.mipmap.ic_launcher);
-                    }
-                    productDao.insert(p);
+                    String[] datos = {"0", name, cat, price, desc, specs, uri, uri2, uri3};
+                    result = dbHelper.administrar_productos("nuevo", datos);
                 }
                 
-                productCatalog = productDao.getAll();
-                applyFilters();
-                Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
+                if (result.equals("ok")) {
+                    loadProducts();
+                    applyFilters();
+                    Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Error: " + result, Toast.LENGTH_LONG).show();
+                }
             } catch (Exception e) {
                 Toast.makeText(this, "Error en los datos", Toast.LENGTH_SHORT).show();
             }
@@ -387,31 +423,55 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void showImageSelectionDialog(boolean isProduct) {
+    private ImageView createDialogImageView() {
+        ShapeableImageView siv = new ShapeableImageView(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(150, 150);
+        params.setMargins(10, 10, 10, 10);
+        siv.setLayoutParams(params);
+        siv.setImageResource(R.mipmap.ic_launcher);
+        siv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        
+        float radius = getResources().getDisplayMetrics().density * 12;
+        siv.setShapeAppearanceModel(siv.getShapeAppearanceModel()
+                .toBuilder()
+                .setAllCorners(CornerFamily.ROUNDED, radius)
+                .build());
+        return siv;
+    }
+
+    private void showImageSelectionDialog(int type) {
+        // type: 0 = Profile, 1 = Product 1, 2 = Product 2, 3 = Product 3
         String[] options = {"Elegir de Galería", "Tomar Foto"};
         new AlertDialog.Builder(this)
                 .setTitle("Seleccionar Imagen")
                 .setItems(options, (dialog, which) -> {
+                    int pickCode, takeCode;
+                    switch(type) {
+                        case 1: pickCode = PICK_PRODUCT_IMAGE; takeCode = TAKE_PRODUCT_PHOTO; break;
+                        case 2: pickCode = PICK_PRODUCT_IMAGE2; takeCode = TAKE_PRODUCT_PHOTO2; break;
+                        case 3: pickCode = PICK_PRODUCT_IMAGE3; takeCode = TAKE_PRODUCT_PHOTO3; break;
+                        default: pickCode = PICK_PROFILE_IMAGE; takeCode = TAKE_PROFILE_PHOTO; break;
+                    }
                     if (which == 0) {
                         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                         intent.addCategory(Intent.CATEGORY_OPENABLE);
                         intent.setType("image/*");
-                        startActivityForResult(intent, isProduct ? PICK_PRODUCT_IMAGE : PICK_PROFILE_IMAGE);
+                        startActivityForResult(intent, pickCode);
                     } else {
-                        checkCameraPermissionAndTakePhoto(isProduct);
+                        checkCameraPermissionAndTakePhoto(takeCode);
                     }
                 }).show();
     }
 
-    private void checkCameraPermissionAndTakePhoto(boolean isProduct) {
+    private void checkCameraPermissionAndTakePhoto(int requestCode) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, isProduct ? TAKE_PRODUCT_PHOTO : TAKE_PROFILE_PHOTO);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, requestCode);
         } else {
-            takePhoto(isProduct);
+            takePhoto(requestCode);
         }
     }
 
-    private void takePhoto(boolean isProduct) {
+    private void takePhoto(int requestCode) {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             File photoFile = null;
@@ -423,7 +483,7 @@ public class MainActivity extends AppCompatActivity {
             if (photoFile != null) {
                 cameraPhotoUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
-                startActivityForResult(takePictureIntent, isProduct ? TAKE_PRODUCT_PHOTO : TAKE_PROFILE_PHOTO);
+                startActivityForResult(takePictureIntent, requestCode);
             }
         } else {
             Toast.makeText(this, "No se encontró aplicación de cámara", Toast.LENGTH_SHORT).show();
@@ -441,8 +501,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (requestCode == TAKE_PRODUCT_PHOTO) takePhoto(true);
-            else if (requestCode == TAKE_PROFILE_PHOTO) takePhoto(false);
+            takePhoto(requestCode);
         } else {
             Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
         }
@@ -459,12 +518,26 @@ public class MainActivity extends AppCompatActivity {
             } else if (requestCode == TAKE_PRODUCT_PHOTO) {
                 selectedProductImageUri = cameraPhotoUri;
                 tempDialogImageView.setImageURI(selectedProductImageUri);
+            } else if (requestCode == PICK_PRODUCT_IMAGE2 && data != null && data.getData() != null) {
+                selectedProductImageUri2 = data.getData();
+                tempDialogImageView2.setImageURI(selectedProductImageUri2);
+                persistUri(selectedProductImageUri2);
+            } else if (requestCode == TAKE_PRODUCT_PHOTO2) {
+                selectedProductImageUri2 = cameraPhotoUri;
+                tempDialogImageView2.setImageURI(selectedProductImageUri2);
+            } else if (requestCode == PICK_PRODUCT_IMAGE3 && data != null && data.getData() != null) {
+                selectedProductImageUri3 = data.getData();
+                tempDialogImageView3.setImageURI(selectedProductImageUri3);
+                persistUri(selectedProductImageUri3);
+            } else if (requestCode == TAKE_PRODUCT_PHOTO3) {
+                selectedProductImageUri3 = cameraPhotoUri;
+                tempDialogImageView3.setImageURI(selectedProductImageUri3);
             } else if (requestCode == PICK_PROFILE_IMAGE && data != null && data.getData() != null) {
                 Uri profileUri = data.getData();
-                profileImageView.setImageURI(profileUri);
                 persistUri(profileUri);
+                updateProfileLists();
             } else if (requestCode == TAKE_PROFILE_PHOTO) {
-                profileImageView.setImageURI(cameraPhotoUri);
+                updateProfileLists();
             }
         }
     }
@@ -479,12 +552,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupProfile() {
-        TextView tvEmail = findViewById(R.id.user_email_display);
-        if (isGuest) tvEmail.setText("Modo Explorador");
-        else tvEmail.setText(userEmail);
-        
-        findViewById(R.id.btn_change_photo).setOnClickListener(v -> showImageSelectionDialog(false));
-
         updateProfileLists();
     }
 
@@ -510,6 +577,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateProfileLists() {
+        TextView tvEmail = findViewById(R.id.user_email_display);
+        if (tvEmail != null) tvEmail.setText(isGuest ? "Modo Explorador" : userEmail);
+
+        View btnChangePhoto = findViewById(R.id.btn_change_photo);
+        if (btnChangePhoto != null) btnChangePhoto.setOnClickListener(v -> showImageSelectionDialog(0));
+
         LinearLayout cartC = findViewById(R.id.cart_items_container);
         LinearLayout purchC = findViewById(R.id.purchased_items_container);
         if (cartC == null || purchC == null) return;
@@ -525,12 +598,74 @@ public class MainActivity extends AppCompatActivity {
 
     private void showSpecs(Product p) {
         String detail = "Descripción:\n" + p.getDescription() + 
-                       "\n\nEspecificaciones Técnicas:\n" + p.getSpecs();
+                       "\n\nEspecificaciones Técnicas:\n" + p.getSpecs() +
+                       "\n\nPrecio: $" + p.getPrice();
                        
-        new AlertDialog.Builder(this)
-            .setTitle(p.getName())
-            .setMessage(detail)
-            .setPositiveButton("Cerrar", null)
-            .show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(p.getName());
+        
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(40, 40, 40, 40);
+        
+        float density = getResources().getDisplayMetrics().density;
+
+        // Imagen principal con bordes redondeados
+        if (p.getImageUri() != null && !p.getImageUri().isEmpty()) {
+            ShapeableImageView iv = new ShapeableImageView(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (int)(250 * density));
+            params.setMargins(0, 0, 0, (int)(15 * density));
+            iv.setLayoutParams(params);
+            iv.setImageURI(Uri.parse(p.getImageUri()));
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setShapeAppearanceModel(iv.getShapeAppearanceModel().toBuilder()
+                    .setAllCorners(CornerFamily.ROUNDED, 25 * density).build());
+            layout.addView(iv);
+        }
+        
+        // Imágenes extra en horizontal (Más grandes y redondeadas)
+        LinearLayout extraImages = new LinearLayout(this);
+        extraImages.setOrientation(LinearLayout.HORIZONTAL);
+        extraImages.setGravity(Gravity.CENTER);
+        
+        if (p.getImageUri2() != null && !p.getImageUri2().isEmpty()) {
+            ShapeableImageView iv2 = new ShapeableImageView(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, (int)(180 * density), 1f);
+            params.setMargins(0, 0, (int)(5 * density), 0);
+            iv2.setLayoutParams(params);
+            iv2.setImageURI(Uri.parse(p.getImageUri2()));
+            iv2.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv2.setShapeAppearanceModel(iv2.getShapeAppearanceModel().toBuilder()
+                    .setAllCorners(CornerFamily.ROUNDED, 20 * density).build());
+            extraImages.addView(iv2);
+        }
+        
+        if (p.getImageUri3() != null && !p.getImageUri3().isEmpty()) {
+            ShapeableImageView iv3 = new ShapeableImageView(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, (int)(180 * density), 1f);
+            params.setMargins((int)(5 * density), 0, 0, 0);
+            iv3.setLayoutParams(params);
+            iv3.setImageURI(Uri.parse(p.getImageUri3()));
+            iv3.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv3.setShapeAppearanceModel(iv3.getShapeAppearanceModel().toBuilder()
+                    .setAllCorners(CornerFamily.ROUNDED, 20 * density).build());
+            extraImages.addView(iv3);
+        }
+        
+        if (extraImages.getChildCount() > 0) {
+            layout.addView(extraImages);
+        }
+
+        TextView tv = new TextView(this);
+        tv.setText(detail);
+        tv.setPadding(0, (int)(20 * density), 0, 0);
+        tv.setTextSize(16);
+        layout.addView(tv);
+
+        builder.setView(layout);
+        builder.setPositiveButton("Cerrar", null);
+        builder.show();
     }
 }
+
+

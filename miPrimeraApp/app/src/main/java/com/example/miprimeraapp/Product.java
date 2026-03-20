@@ -14,6 +14,8 @@ public class Product {
     private String specs; 
     private int imageResource;
     private String imageUri;
+    private String imageUri2;
+    private String imageUri3;
 
     public Product() {
     }
@@ -26,6 +28,8 @@ public class Product {
         this.specs = specs;
         this.imageResource = imageResource;
         this.imageUri = null;
+        this.imageUri2 = null;
+        this.imageUri3 = null;
     }
 
     public Product(String name, String category, double price, String description, String specs, String imageUri) {
@@ -36,6 +40,8 @@ public class Product {
         this.specs = specs;
         this.imageResource = 0;
         this.imageUri = imageUri;
+        this.imageUri2 = null;
+        this.imageUri3 = null;
     }
 
     public int getId() { return id; }
@@ -47,6 +53,8 @@ public class Product {
     public String getSpecs() { return specs; }
     public int getImageResource() { return imageResource; }
     public String getImageUri() { return imageUri; }
+    public String getImageUri2() { return imageUri2; }
+    public String getImageUri3() { return imageUri3; }
 
     public void setName(String name) { this.name = name; }
     public void setCategory(String category) { this.category = category; }
@@ -55,4 +63,6 @@ public class Product {
     public void setSpecs(String specs) { this.specs = specs; }
     public void setImageResource(int imageResource) { this.imageResource = imageResource; }
     public void setImageUri(String imageUri) { this.imageUri = imageUri; }
+    public void setImageUri2(String imageUri2) { this.imageUri2 = imageUri2; }
+    public void setImageUri3(String imageUri3) { this.imageUri3 = imageUri3; }
 }

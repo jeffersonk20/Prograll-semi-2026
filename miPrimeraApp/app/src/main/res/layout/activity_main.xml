@@ -72,64 +72,10 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:background="@drawable/rounded_card"
-                android:hint="Buscar..."
+                android:hint="Buscar por nombre o precio..."
                 android:paddingStart="16dp"
                 android:drawableStart="@android:drawable/ic_menu_search"
                 android:drawablePadding="8dp" />
-
-            <!-- FILTROS DE PRECIO -->
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:scrollbars="none">
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
-
-                    <Button
-                        android:id="@+id/btnFilterAll"
-                        android:layout_width="wrap_content"
-                        android:layout_height="35dp"
-                        android:text="Todos"
-                        android:textSize="10sp"
-                        android:backgroundTint="#3B82F6"
-                        android:textColor="#FFFFFF"
-                        android:layout_marginEnd="8dp"/>
-
-                    <Button
-                        android:id="@+id/btnFilterCheap"
-                        android:layout_width="wrap_content"
-                        android:layout_height="35dp"
-                        android:text="Económicos"
-                        android:textSize="10sp"
-                        android:backgroundTint="#1E293B"
-                        android:textColor="#FFFFFF"
-                        android:layout_marginEnd="8dp"/>
-
-                    <Button
-                        android:id="@+id/btnFilterMid"
-                        android:layout_width="wrap_content"
-                        android:layout_height="35dp"
-                        android:text="Media"
-                        android:textSize="10sp"
-                        android:backgroundTint="#1E293B"
-                        android:textColor="#FFFFFF"
-                        android:layout_marginEnd="8dp"/>
-
-                    <Button
-                        android:id="@+id/btnFilterPremium"
-                        android:layout_width="wrap_content"
-                        android:layout_height="35dp"
-                        android:text="Premium"
-                        android:textSize="10sp"
-                        android:backgroundTint="#1E293B"
-                        android:textColor="#FFFFFF" />
-                </LinearLayout>
-            </HorizontalScrollView>
 
             <!-- BOTONES DE ADMINISTRACIÓN -->
             <LinearLayout
