@@ -15,9 +15,11 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TabHost;
 import android.widget.TextView;
@@ -71,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private Uri selectedProductImageUri;
     private Uri selectedProductImageUri2;
     private Uri selectedProductImageUri3;
+    private Uri selectedProfileImageUri;
     private Uri cameraPhotoUri;
 
     // Lista dinámica de productos (Catálogo)
@@ -88,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         userEmail = getIntent().getStringExtra("userEmail");
 
         searchEdit = findViewById(R.id.search);
+        profileImageView = findViewById(R.id.profile_image);
         
         setupTabs();
         loadProducts(); 
@@ -533,11 +537,12 @@ public class MainActivity extends AppCompatActivity {
                 selectedProductImageUri3 = cameraPhotoUri;
                 tempDialogImageView3.setImageURI(selectedProductImageUri3);
             } else if (requestCode == PICK_PROFILE_IMAGE && data != null && data.getData() != null) {
-                Uri profileUri = data.getData();
-                persistUri(profileUri);
-                updateProfileLists();
+                selectedProfileImageUri = data.getData();
+                if (profileImageView != null) profileImageView.setImageURI(selectedProfileImageUri);
+                persistUri(selectedProfileImageUri);
             } else if (requestCode == TAKE_PROFILE_PHOTO) {
-                updateProfileLists();
+                selectedProfileImageUri = cameraPhotoUri;
+                if (profileImageView != null) profileImageView.setImageURI(selectedProfileImageUri);
             }
         }
     }
@@ -564,16 +569,61 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCartDialog() {
-        List<Product> items = CartManager.getInstance().getCartItems();
-        if (items.isEmpty()) { Toast.makeText(this, "Vacio", Toast.LENGTH_SHORT).show(); return; }
         AlertDialog.Builder b = new AlertDialog.Builder(this);
-        b.setTitle("Carrito");
-        LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(40,40,40,40);
-        for (Product p : items) {
-            TextView t = new TextView(this); t.setText("🛒 " + p.getName() + " - $" + p.getPrice());
-            l.addView(t);
+        b.setTitle("Carrito de Compras");
+
+        LinearLayout mainLayout = new LinearLayout(this);
+        mainLayout.setOrientation(LinearLayout.VERTICAL);
+        mainLayout.setPadding(30, 30, 30, 30);
+
+        // Función para llenar el layout (se puede llamar repetidamente)
+        fillCartLayout(mainLayout);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(mainLayout);
+        
+        b.setView(scroll);
+        b.setPositiveButton("Cerrar", null);
+        b.show();
+    }
+
+    private void fillCartLayout(LinearLayout container) {
+        container.removeAllViews();
+        List<Product> items = CartManager.getInstance().getCartItems();
+        
+        if (items.isEmpty()) {
+            TextView tvEmpty = new TextView(this);
+            tvEmpty.setText("El carrito está vacío");
+            tvEmpty.setGravity(Gravity.CENTER);
+            tvEmpty.setPadding(0, 50, 0, 50);
+            container.addView(tvEmpty);
+            return;
         }
-        b.setView(l); b.setPositiveButton("Cerrar", null); b.show();
+
+        for (Product p : items) {
+            LinearLayout itemRow = new LinearLayout(this);
+            itemRow.setOrientation(LinearLayout.HORIZONTAL);
+            itemRow.setGravity(Gravity.CENTER_VERTICAL);
+            itemRow.setPadding(0, 10, 0, 10);
+
+            TextView tvInfo = new TextView(this);
+            tvInfo.setText("🛒 " + p.getName() + " - $" + p.getPrice());
+            tvInfo.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+            itemRow.addView(tvInfo);
+
+            Button btnRemove = new Button(this);
+            btnRemove.setText("❌");
+            btnRemove.setLayoutParams(new LinearLayout.LayoutParams(120, 100));
+            btnRemove.setOnClickListener(v -> {
+                CartManager.getInstance().removeFromCart(p);
+                updateProfileLists();
+                fillCartLayout(container); // RECARGA EL CONTENIDO SIN CERRAR EL DIÁLOGO
+                Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
+            });
+            itemRow.addView(btnRemove);
+
+            container.addView(itemRow);
+        }
     }
 
     private void updateProfileLists() {
@@ -583,12 +633,34 @@ public class MainActivity extends AppCompatActivity {
         View btnChangePhoto = findViewById(R.id.btn_change_photo);
         if (btnChangePhoto != null) btnChangePhoto.setOnClickListener(v -> showImageSelectionDialog(0));
 
+        if (selectedProfileImageUri != null && profileImageView != null) {
+            profileImageView.setImageURI(selectedProfileImageUri);
+        }
+
         LinearLayout cartC = findViewById(R.id.cart_items_container);
         LinearLayout purchC = findViewById(R.id.purchased_items_container);
         if (cartC == null || purchC == null) return;
         cartC.removeAllViews();
         for (Product p : CartManager.getInstance().getCartItems()) {
-            TextView tv = new TextView(this); tv.setText("🛒 " + p.getName()); cartC.addView(tv);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView tv = new TextView(this);
+            tv.setText("🛒 " + p.getName());
+            tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+            row.addView(tv);
+
+            TextView btnDel = new TextView(this);
+            btnDel.setText(" [X] ");
+            btnDel.setPadding(20, 10, 20, 10);
+            btnDel.setOnClickListener(v -> {
+                CartManager.getInstance().removeFromCart(p);
+                updateProfileLists();
+            });
+            row.addView(btnDel);
+
+            cartC.addView(row);
         }
         purchC.removeAllViews();
         for (Product p : CartManager.getInstance().getPurchasedItems()) {
@@ -662,10 +734,11 @@ public class MainActivity extends AppCompatActivity {
         tv.setTextSize(16);
         layout.addView(tv);
 
-        builder.setView(layout);
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.addView(layout);
+
+        builder.setView(scrollView);
         builder.setPositiveButton("Cerrar", null);
         builder.show();
     }
 }
-
-
