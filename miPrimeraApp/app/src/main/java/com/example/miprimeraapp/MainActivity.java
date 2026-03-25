@@ -58,14 +58,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int PICK_PRODUCT_IMAGE3 = 107;
     private static final int TAKE_PRODUCT_PHOTO3 = 108;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
-
-    // Modos de administración
     private enum AdminMode { NORMAL, MODIFY, DELETE }
     private AdminMode currentMode = AdminMode.NORMAL;
 
     private EditText searchEdit;
-
-    // Auxiliares para imágenes
     private ImageView tempDialogImageView;
     private ImageView tempDialogImageView2;
     private ImageView tempDialogImageView3;
@@ -76,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
     private Uri selectedProfileImageUri;
     private Uri cameraPhotoUri;
 
-    // Lista dinámica de productos (Catálogo)
     private List<Product> productCatalog = new ArrayList<>();
     private DB dbHelper;
 
@@ -100,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.cart).setOnClickListener(v -> showCartDialog());
         findViewById(R.id.profile_btn).setOnClickListener(v -> tbh.setCurrentTabByTag("Profile"));
 
-        // Configurar botones de administración
         findViewById(R.id.btnAddProduct).setOnClickListener(v -> {
             currentMode = AdminMode.NORMAL;
             showAddProductDialog(null);
@@ -158,7 +152,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (productCatalog.isEmpty()) {
             initCatalog();
-            // Guardar iniciales en la nueva DB
             for (Product p : productCatalog) {
                 String[] datos = {
                     "0", p.getName(), p.getCategory(), String.valueOf(p.getPrice()), 
@@ -169,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
                 };
                 dbHelper.administrar_productos("nuevo", datos);
             }
-            loadProducts(); // Recargar para tener IDs reales
+            loadProducts();
         }
     }
 
