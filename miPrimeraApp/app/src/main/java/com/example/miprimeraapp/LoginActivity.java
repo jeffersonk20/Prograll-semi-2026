@@ -33,7 +33,6 @@ public class LoginActivity extends AppCompatActivity {
             if (email.isEmpty()) {
                 Toast.makeText(this, "Por favor ingresa tu correo", Toast.LENGTH_SHORT).show();
             } else {
-                // Guardar la sesión como "Logueado"
                 SharedPreferences globalPrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
                 globalPrefs.edit()
                         .putBoolean("isLoggedIn", true)

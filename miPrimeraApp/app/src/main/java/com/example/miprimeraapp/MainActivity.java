@@ -240,24 +240,19 @@ public class MainActivity extends AppCompatActivity {
     private void addProductToUI(Product p) {
         String query = searchEdit.getText().toString().trim();
         List<LinearLayout> containers = new ArrayList<>();
-        
-        // REGLA PARA EL HOME (INICIO):
+
         if (!query.isEmpty()) {
-            // Si hay búsqueda, todos al inicio sin importar la gama
             containers.add(findViewById(R.id.inicio_container));
         } else if (p.getCategory().equals("Alta") || p.getCategory().equals("Gaming")) {
-            // Si no hay búsqueda, solo Alta y Gaming en el Home
             containers.add(findViewById(R.id.inicio_container));
         }
 
-        // REGLA PARA LAS PESTAÑAS ESPECÍFICAS (NO se eliminan las gamas):
         switch (p.getCategory()) {
             case "Alta": containers.add(findViewById(R.id.gamaAlta_container)); break;
             case "Media": containers.add(findViewById(R.id.gamaMedia_container)); break;
             case "Baja": containers.add(findViewById(R.id.gamaBaja_container)); break;
             case "Gaming": containers.add(findViewById(R.id.gaming_container)); break;
-            default: 
-                // Evitar duplicados en el Home si no tiene categoría reconocida
+            default:
                 LinearLayout inicio = findViewById(R.id.inicio_container);
                 if (!containers.contains(inicio)) containers.add(inicio);
                 break;
@@ -437,7 +432,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showImageSelectionDialog(int type) {
-        // type: 0 = Profile, 1 = Product 1, 2 = Product 2, 3 = Product 3
         String[] options = {"Elegir de Galería", "Tomar Foto"};
         new AlertDialog.Builder(this)
                 .setTitle("Seleccionar Imagen")
@@ -675,7 +669,7 @@ public class MainActivity extends AppCompatActivity {
         
         float density = getResources().getDisplayMetrics().density;
 
-        // Imagen principal con bordes redondeados
+        // bordes redondeados
         if (p.getImageUri() != null && !p.getImageUri().isEmpty()) {
             ShapeableImageView iv = new ShapeableImageView(this);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (int)(250 * density));
@@ -688,7 +682,7 @@ public class MainActivity extends AppCompatActivity {
             layout.addView(iv);
         }
         
-        // Imágenes extra en horizontal (Más grandes y redondeadas)
+        // otras dos imágenes
         LinearLayout extraImages = new LinearLayout(this);
         extraImages.setOrientation(LinearLayout.HORIZONTAL);
         extraImages.setGravity(Gravity.CENTER);
