@@ -114,7 +114,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, currentMode == AdminMode.DELETE ? "Modo Eliminación Activado" : "Modo Normal", Toast.LENGTH_SHORT).show();
         });
 
-        // Buscador en tiempo real
         searchEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
