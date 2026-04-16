@@ -1,4 +1,5 @@
 package com.example.miprimeraapp;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -25,7 +26,7 @@ public class MainActivity extends Activity {
     DB db;
     Button btn;
     TextView tempVal;
-    String accion="nuevo", idAmigo="", urlFoto;
+    String accion="nuevo", idAmigo="", urlFoto, id="", rev="";
     Intent tomarFotoIntent;
     FloatingActionButton fab;
     ImageView img;
@@ -54,6 +55,8 @@ public class MainActivity extends Activity {
             accion = parametros.getString("accion");
             if(accion.equals("modificar")){
                 JSONObject datos = new JSONObject(parametros.getString("amigos"));
+                id = datos.getString("_id");
+                rev = datos.getString("_rev");
                 idAmigo = datos.getString("idAmigo");
 
                 tempVal = findViewById(R.id.txtNombreAmigos);
@@ -122,26 +125,54 @@ public class MainActivity extends Activity {
         return image;
     }
     private void guardarAmigo(){
-        tempVal = findViewById(R.id.txtNombreAmigos);
-        String nombre = tempVal.getText().toString();
+        try {
+            tempVal = findViewById(R.id.txtNombreAmigos);
+            String nombre = tempVal.getText().toString();
 
-        tempVal = findViewById(R.id.txtDireccionAmigos);
-        String direccion = tempVal.getText().toString();
+            tempVal = findViewById(R.id.txtDireccionAmigos);
+            String direccion = tempVal.getText().toString();
 
-        tempVal = findViewById(R.id.txtTelefonoAmigos);
-        String tel = tempVal.getText().toString();
+            tempVal = findViewById(R.id.txtTelefonoAmigos);
+            String tel = tempVal.getText().toString();
 
-        tempVal = findViewById(R.id.txtEmailAmigos);
-        String email = tempVal.getText().toString();
+            tempVal = findViewById(R.id.txtEmailAmigos);
+            String email = tempVal.getText().toString();
 
-        tempVal = findViewById(R.id.txtDuiAmigos);
-        String dui = tempVal.getText().toString();
+            tempVal = findViewById(R.id.txtDuiAmigos);
+            String dui = tempVal.getText().toString();
 
-        String[] datos = {idAmigo, nombre, direccion, tel, email, dui, urlFoto};
-        db.administrar_amigos(accion, datos);
-        mostrarMsg("Registro de amigo guardado con exito.");
+            //guardar datos en la base de datos en local - SQLite
+            String[] datos = {idAmigo, nombre, direccion, tel, email, dui, urlFoto};
+            db.administrar_amigos(accion, datos);
+            //guardar datos en la base de datos CouchDB conWebService y API REST.
+            JSONObject datosAmigos = new JSONObject();
+            if(accion.equals("modificar")){
+                datosAmigos.put("_id", id);
+                datosAmigos.put("_rev", rev);
+            }
+            datosAmigos.put("idAmigo", idAmigo);
+            datosAmigos.put("nombre", nombre);
+            datosAmigos.put("direccion", direccion);
+            datosAmigos.put("telefono", tel);
+            datosAmigos.put("email", email);
+            datosAmigos.put("dui", dui);
+            datosAmigos.put("urlFoto", urlFoto);
 
-        regresarListaAmigos();
+            enviarDatosServidor objEnviarDatosServidor = new enviarDatosServidor(this);
+            String respuesta = objEnviarDatosServidor.execute(datosAmigos.toString(), "POST", utilidades.url_mto).get();
+
+            JSONObject respuestaJSON = new JSONObject(respuesta);
+            if(respuestaJSON.getBoolean("ok")){
+                id = respuestaJSON.getString("id");
+                rev = respuestaJSON.getString("rev");
+            }else{
+                mostrarMsg("Error: "+ respuestaJSON.getString("msg"));
+            }
+            mostrarMsg("Registro de amigo guardado con exito.");
+            regresarListaAmigos();
+        } catch (Exception e) {
+            mostrarMsg(e.getMessage());
+        }
     }
     private void mostrarMsg(String msg){
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
