@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey;
 public class Product {
     @PrimaryKey(autoGenerate = true)
     private int id;
+    private String _id;
+    private String _rev;
     private String name;
     private String category;
     private double price;
@@ -46,6 +48,10 @@ public class Product {
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
+    public String get_id() { return _id; }
+    public void set_id(String _id) { this._id = _id; }
+    public String get_rev() { return _rev; }
+    public void set_rev(String _rev) { this._rev = _rev; }
     public String getName() { return name; }
     public String getCategory() { return category; }
     public double getPrice() { return price; }

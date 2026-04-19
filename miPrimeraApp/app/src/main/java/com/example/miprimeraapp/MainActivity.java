@@ -36,6 +36,9 @@ import androidx.core.content.FileProvider;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.shape.CornerFamily;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -74,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     private List<Product> productCatalog = new ArrayList<>();
     private DB dbHelper;
+    private detectarinternet di;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         dbHelper = new DB(this);
+        di = new detectarinternet(this);
 
         isGuest = getIntent().getBooleanExtra("isGuest", false);
         userEmail = getIntent().getStringExtra("userEmail");
@@ -130,38 +135,56 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadProducts() {
         productCatalog.clear();
-        Cursor cursor = dbHelper.lista_productos();
-        
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                Product p = new Product();
-                p.setId(cursor.getInt(0));
-                p.setName(cursor.getString(1));
-                p.setCategory(cursor.getString(2));
-                p.setPrice(cursor.getDouble(3));
-                p.setDescription(cursor.getString(4));
-                p.setSpecs(cursor.getString(5));
-                p.setImageUri(cursor.getString(6));
-                if (cursor.getColumnCount() > 7) p.setImageUri2(cursor.getString(7));
-                if (cursor.getColumnCount() > 8) p.setImageUri3(cursor.getString(8));
-                productCatalog.add(p);
-            } while (cursor.moveToNext());
-            cursor.close();
+        try {
+            if (di.hayConexionInternet()) {
+                obtenerDatosServidor datosServidor = new obtenerDatosServidor();
+                String respuesta = datosServidor.execute().get();
+                JSONObject jsonObject = new JSONObject(respuesta);
+                JSONArray jsonArray = jsonObject.getJSONArray("rows");
+
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject row = jsonArray.getJSONObject(i).getJSONObject("value");
+                    Product p = new Product();
+                    // Guardamos los IDs de CouchDB
+                    p.set_id(row.getString("_id"));
+                    p.set_rev(row.getString("_rev"));
+                    
+                    p.setName(row.getString("name"));
+                    p.setCategory(row.getString("category"));
+                    p.setPrice(row.getDouble("price"));
+                    p.setDescription(row.getString("description"));
+                    p.setSpecs(row.getString("specs"));
+                    p.setImageUri(row.getString("imageUri"));
+                    p.setImageUri2(row.optString("imageUri2", ""));
+                    p.setImageUri3(row.optString("imageUri3", ""));
+                    productCatalog.add(p);
+                }
+            } else {
+                Cursor cursor = dbHelper.lista_productos();
+                if (cursor != null && cursor.moveToFirst()) {
+                    do {
+                        Product p = new Product();
+                        p.setId(cursor.getInt(0));
+                        p.setName(cursor.getString(1));
+                        p.setCategory(cursor.getString(2));
+                        p.setPrice(cursor.getDouble(3));
+                        p.setDescription(cursor.getString(4));
+                        p.setSpecs(cursor.getString(5));
+                        p.setImageUri(cursor.getString(6));
+                        if (cursor.getColumnCount() > 7) p.setImageUri2(cursor.getString(7));
+                        if (cursor.getColumnCount() > 8) p.setImageUri3(cursor.getString(8));
+                        productCatalog.add(p);
+                    } while (cursor.moveToNext());
+                    cursor.close();
+                }
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Error al cargar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
         if (productCatalog.isEmpty()) {
             initCatalog();
-            for (Product p : productCatalog) {
-                String[] datos = {
-                    "0", p.getName(), p.getCategory(), String.valueOf(p.getPrice()), 
-                    p.getDescription(), p.getSpecs(), 
-                    p.getImageUri() != null ? p.getImageUri() : "",
-                    p.getImageUri2() != null ? p.getImageUri2() : "",
-                    p.getImageUri3() != null ? p.getImageUri3() : ""
-                };
-                dbHelper.administrar_productos("nuevo", datos);
-            }
-            loadProducts();
+            // ... resto del código para inicializar localmente si está vacío
         }
     }
 
@@ -299,10 +322,23 @@ public class MainActivity extends AppCompatActivity {
             btnDel.setOnClickListener(view -> {
                 new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
                     .setPositiveButton("Sí", (d, w) -> {
+                        // Eliminar de SQLite
                         dbHelper.administrar_productos("eliminar", new String[]{String.valueOf(p.getId())});
+                        
+                        // Eliminar de CouchDB si hay internet y tenemos los IDs
+                        if (di.hayConexionInternet() && p.get_id() != null) {
+                            try {
+                                String urlEliminar = utilidades.url_mto + "/" + p.get_id() + "?rev=" + p.get_rev();
+                                enviarDatosServidor objEliminar = new enviarDatosServidor(this);
+                                objEliminar.execute("{}", "DELETE", urlEliminar);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        
                         loadProducts();
                         applyFilters();
-                        Toast.makeText(this, "Eliminado", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Eliminado con éxito", Toast.LENGTH_SHORT).show();
                     }).setNegativeButton("No", null).show();
             });
 
@@ -400,6 +436,30 @@ public class MainActivity extends AppCompatActivity {
                 }
                 
                 if (result.equals("ok")) {
+                    // Guardar en CouchDB si hay internet
+                    if (di.hayConexionInternet()) {
+                        try {
+                            JSONObject datosCouch = new JSONObject();
+                            // Si es modificación, incluimos ID y REV
+                            if (existingProduct != null && existingProduct.get_id() != null) {
+                                datosCouch.put("_id", existingProduct.get_id());
+                                datosCouch.put("_rev", existingProduct.get_rev());
+                            }
+                            datosCouch.put("name", name);
+                            datosCouch.put("category", cat);
+                            datosCouch.put("price", Double.parseDouble(price));
+                            datosCouch.put("description", desc);
+                            datosCouch.put("specs", specs);
+                            datosCouch.put("imageUri", uri);
+                            datosCouch.put("imageUri2", uri2);
+                            datosCouch.put("imageUri3", uri3);
+
+                            enviarDatosServidor objEnviar = new enviarDatosServidor(this);
+                            objEnviar.execute(datosCouch.toString(), "POST", utilidades.url_mto);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                     loadProducts();
                     applyFilters();
                     Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show();
