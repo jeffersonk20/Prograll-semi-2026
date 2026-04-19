@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
     DB db;
     Button btn;
     TextView tempVal;
-    String accion="nuevo", idAmigo="", urlFoto, id="", rev="";
+    String accion="nuevo", idAmigo="", urlFoto="", id="", rev="";
     Intent tomarFotoIntent;
     FloatingActionButton fab;
     ImageView img;
@@ -156,10 +156,12 @@ public class MainActivity extends Activity {
             datosAmigos.put("telefono", tel);
             datosAmigos.put("email", email);
             datosAmigos.put("dui", dui);
-            datosAmigos.put("urlFoto", urlFoto);
+            datosAmigos.put("foto", urlFoto);
 
             enviarDatosServidor objEnviarDatosServidor = new enviarDatosServidor(this);
             String respuesta = objEnviarDatosServidor.execute(datosAmigos.toString(), "POST", utilidades.url_mto).get();
+
+            //tempVal.setText(respuesta);
 
             JSONObject respuestaJSON = new JSONObject(respuesta);
             if(respuestaJSON.getBoolean("ok")){
@@ -181,4 +183,5 @@ public class MainActivity extends Activity {
         Intent intent = new Intent(this, lista_amigos.class);
         startActivity(intent);
     }
+
 }
