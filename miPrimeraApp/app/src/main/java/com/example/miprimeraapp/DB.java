@@ -76,3 +76,4 @@ public class DB extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM products", null);
     }
 }
+

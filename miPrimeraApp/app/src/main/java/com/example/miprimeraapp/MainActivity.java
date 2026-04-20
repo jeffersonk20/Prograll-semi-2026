@@ -234,25 +234,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initCatalog() {
-        productCatalog.add(new Product("iPhone 15 Pro Max", "Alta", 1399.0, 
-            "El tope de gama de Apple con acabado en titanio de grado aeroespacial.", 
-            "• Chip A17 Pro (3nm)\n• Pantalla Super Retina XDR OLED 6.7\"\n• Sistema de Cámara Pro 48MP (Teleobjetivo x5)\n• Puerto USB-C 3.0\n• Botón de Acción personalizable.", ""));
-
-        productCatalog.add(new Product("Samsung S24 Ultra", "Alta", 1299.0, 
-            "El smartphone definitivo impulsado por Inteligencia Artificial Avanzada.", 
-            "• Snapdragon 8 Gen 3 for Galaxy\n• Pantalla 6.8\" Dynamic AMOLED 2X QHD+\n• S-Pen de baja latencia integrado\n• Cámara principal de 200MP\n• Funciones Galaxy AI integradas.", ""));
-
-        productCatalog.add(new Product("Galaxy A54 5G", "Media", 450.0, 
-            "Equilibrio perfecto entre diseño premium y rendimiento excepcional.", 
-            "• Procesador Exynos 1380\n• Pantalla Super AMOLED 120Hz 6.4\"\n• 8GB RAM + 128GB Almacenamiento\n• Cámara 50MP con OIS\n• Certificación IP67 agua/polvo.", ""));
-
-        productCatalog.add(new Product("Redmi Note 13", "Baja", 199.0, 
-            "La mejor opción económica con pantalla de calidad y carga ultra rápida.", 
-            "• Pantalla AMOLED 120Hz Full HD+\n• Cámara triple de 108MP\n• Carga rápida de 33W (cargador incluido)\n• Batería de 5000mAh\n• Sensor de huellas bajo pantalla.", ""));
-
-        productCatalog.add(new Product("Asus ROG Phone 8", "Gaming", 1099.0, 
-            "Potencia extrema y diseño optimizado para los jugadores más exigentes.", 
-            "• Snapdragon 8 Gen 3\n• Pantalla LTPO 165Hz ultra fluida\n• Sistema de enfriamiento AeroActive\n• Gatillos AirTrigger sensibles a la presión\n• Iluminación Aura RGB personalizable.", ""));
+        // Método eliminado para evitar productos por defecto
     }
 
     private void refreshAllContainers() {

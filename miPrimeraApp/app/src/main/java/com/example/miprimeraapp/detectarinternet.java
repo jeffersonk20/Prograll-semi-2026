@@ -2,7 +2,8 @@ package com.example.miprimeraapp;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 
 public class detectarinternet {
     Context context;
@@ -12,18 +13,17 @@ public class detectarinternet {
     }
 
     public boolean hayConexionInternet() {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connectivityManager == null) return false;
 
-        NetworkInfo[] info = connectivityManager.getAllNetworkInfo();
-        if (info == null) return false;
+        Network network = connectivityManager.getActiveNetwork();
+        if (network == null) return false;
 
-        for (NetworkInfo networkInfo : info) {
-            if (networkInfo.getState() == NetworkInfo.State.CONNECTED) {
-                return true;
-            }
-        }
-        return false;
+        NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+        return capabilities != null && (
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        );
     }
 }
