@@ -119,6 +119,14 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, currentMode == AdminMode.DELETE ? "Modo Eliminación Activado" : "Modo Normal", Toast.LENGTH_SHORT).show();
         });
 
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> {
+            if (di.hayConexionInternet()) {
+                sincronizarConServidor();
+            } else {
+                Toast.makeText(this, "Sin internet para sincronizar", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         searchEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -145,7 +153,6 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject row = jsonArray.getJSONObject(i).getJSONObject("value");
                     Product p = new Product();
-                    // Guardamos los IDs de CouchDB
                     p.set_id(row.getString("_id"));
                     p.set_rev(row.getString("_rev"));
                     
@@ -184,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (productCatalog.isEmpty()) {
             initCatalog();
-            // ... resto del código para inicializar localmente si está vacío
         }
     }
 
@@ -417,12 +423,13 @@ public class MainActivity extends AppCompatActivity {
                     result = dbHelper.administrar_productos("nuevo", datos);
                 }
                 
-                if (result.equals("ok")) {
-                    // Guardar en CouchDB si hay internet
+                // Si el resultado es un número (ID local) o "ok"
+                if (!result.contains("Error")) {
+                    final String idLocal = result.equals("ok") ? String.valueOf(existingProduct.getId()) : result;
+
                     if (di.hayConexionInternet()) {
                         try {
                             JSONObject datosCouch = new JSONObject();
-                            // Si es modificación, incluimos ID y REV
                             if (existingProduct != null && existingProduct.get_id() != null) {
                                 datosCouch.put("_id", existingProduct.get_id());
                                 datosCouch.put("_rev", existingProduct.get_rev());
@@ -437,7 +444,13 @@ public class MainActivity extends AppCompatActivity {
                             datosCouch.put("imageUri3", uri3);
 
                             enviarDatosServidor objEnviar = new enviarDatosServidor(this);
-                            objEnviar.execute(datosCouch.toString(), "POST", utilidades.url_mto);
+                            String respuesta = objEnviar.execute(datosCouch.toString(), "POST", utilidades.url_mto).get();
+                            
+                            // IMPORTANTE: Guardar el ID de Couch en SQLite de inmediato
+                            JSONObject respJson = new JSONObject(respuesta);
+                            if (respJson.has("id")) {
+                                dbHelper.actualizarIdCouch(idLocal, respJson.getString("id"));
+                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -604,7 +617,6 @@ public class MainActivity extends AppCompatActivity {
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setPadding(30, 30, 30, 30);
 
-        // Función para llenar el layout (se puede llamar repetidamente)
         fillCartLayout(mainLayout);
 
         ScrollView scroll = new ScrollView(this);
@@ -693,6 +705,47 @@ public class MainActivity extends AppCompatActivity {
         purchC.removeAllViews();
         for (Product p : CartManager.getInstance().getPurchasedItems()) {
             TextView tv = new TextView(this); tv.setText("✅ " + p.getName()); purchC.addView(tv);
+        }
+    }
+
+    private void sincronizarConServidor() {
+        Toast.makeText(this, "Sincronizando...", Toast.LENGTH_SHORT).show();
+        try {
+            Cursor cursor = dbHelper.lista_productos();
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    // Solo subimos los que NO tengan couchId (columna 9)
+                    String couchIdExistente = cursor.getColumnCount() > 9 ? cursor.getString(9) : "";
+                    
+                    if (couchIdExistente == null || couchIdExistente.isEmpty()) {
+                        JSONObject datosCouch = new JSONObject();
+                        datosCouch.put("name", cursor.getString(1));
+                        datosCouch.put("category", cursor.getString(2));
+                        datosCouch.put("price", cursor.getDouble(3));
+                        datosCouch.put("description", cursor.getString(4));
+                        datosCouch.put("specs", cursor.getString(5));
+                        datosCouch.put("imageUri", cursor.getString(6));
+                        datosCouch.put("imageUri2", cursor.getString(7));
+                        datosCouch.put("imageUri3", cursor.getString(8));
+
+                        enviarDatosServidor objEnviar = new enviarDatosServidor(this);
+                        String respuesta = objEnviar.execute(datosCouch.toString(), "POST", utilidades.url_mto).get();
+                        
+                        // Si se subió con éxito, guardamos el ID que nos dio CouchDB en SQLite
+                        JSONObject respJson = new JSONObject(respuesta);
+                        if (respJson.has("id")) {
+                            dbHelper.actualizarIdCouch(String.valueOf(cursor.getInt(0)), respJson.getString("id"));
+                        }
+                    }
+                } while (cursor.moveToNext());
+                cursor.close();
+            }
+            
+            loadProducts();
+            applyFilters();
+            Toast.makeText(this, "Sincronización completada", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error sincronizando: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

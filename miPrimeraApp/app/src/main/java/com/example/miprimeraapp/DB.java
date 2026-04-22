@@ -10,8 +10,8 @@ import androidx.annotation.Nullable;
 
 public class DB extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "jeffphone_db";
-    private static final int DATABASE_VERSION = 2;
-    private static final String SQLdb = "CREATE TABLE products (idProduct INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT, price REAL, description TEXT, specs TEXT, imageUri TEXT, imageUri2 TEXT, imageUri3 TEXT)";
+    private static final int DATABASE_VERSION = 3;
+    private static final String SQLdb = "CREATE TABLE products (idProduct INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT, price REAL, description TEXT, specs TEXT, imageUri TEXT, imageUri2 TEXT, imageUri3 TEXT, couchId TEXT)";
 
     public DB(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -57,9 +57,12 @@ public class DB extends SQLiteOpenHelper {
             values.put("imageUri", datos[6]);
             values.put("imageUri2", datos.length > 7 ? datos[7] : "");
             values.put("imageUri3", datos.length > 8 ? datos[8] : "");
+            if (datos.length > 9) values.put("couchId", datos[9]);
 
             if (accion.equals("nuevo")) {
-                db.insert("products", null, values);
+                long id = db.insert("products", null, values);
+                db.close();
+                return String.valueOf(id); // Devolvemos el ID generado
             } else if (accion.equals("modificar")) {
                 db.update("products", values, "idProduct=?", new String[]{datos[0]});
             }
@@ -74,6 +77,14 @@ public class DB extends SQLiteOpenHelper {
     public Cursor lista_productos() {
         SQLiteDatabase db = getReadableDatabase();
         return db.rawQuery("SELECT * FROM products", null);
+    }
+
+    public void actualizarIdCouch(String idLocal, String idCouch) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("couchId", idCouch);
+        db.update("products", values, "idProduct=?", new String[]{idLocal});
+        db.close();
     }
 }
 
