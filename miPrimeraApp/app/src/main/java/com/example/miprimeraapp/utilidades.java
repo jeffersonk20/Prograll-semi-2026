@@ -3,9 +3,8 @@ package com.example.miprimeraapp;
 import android.util.Base64;
 
 public class utilidades {
-    // Cambia 192.168.1.15 por la IP que te dio el comando ipconfig
-    static String url_consulta = "http://192.168.83.1:5984/productos/_design/productos/_view/todos";
-    static String url_mto = "http://192.168.83.1:5984/productos";
+    static String url_consulta = "http://192.168.21.188:5984/steven/_design/yeimy/_view/yeimy";
+    static String url_mto = "http://192.168.21.188:5984/steven";
     static String user = "steven";
     static String passwd = "200612";
     static String credencialesCodificadas = Base64.encodeToString((user + ":" + passwd).getBytes(), Base64.NO_WRAP);

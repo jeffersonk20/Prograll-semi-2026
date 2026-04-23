@@ -12,6 +12,8 @@ public class Product {
     private String name;
     private String category;
     private double price;
+    private double cost;
+    private int stock;
     private String description;
     private String specs; 
     private int imageResource;
@@ -55,6 +57,8 @@ public class Product {
     public String getName() { return name; }
     public String getCategory() { return category; }
     public double getPrice() { return price; }
+    public double getCost() { return cost; }
+    public int getStock() { return stock; }
     public String getDescription() { return description; }
     public String getSpecs() { return specs; }
     public int getImageResource() { return imageResource; }
@@ -65,6 +69,8 @@ public class Product {
     public void setName(String name) { this.name = name; }
     public void setCategory(String category) { this.category = category; }
     public void setPrice(double price) { this.price = price; }
+    public void setCost(double cost) { this.cost = cost; }
+    public void setStock(int stock) { this.stock = stock; }
     public void setDescription(String description) { this.description = description; }
     public void setSpecs(String specs) { this.specs = specs; }
     public void setImageResource(int imageResource) { this.imageResource = imageResource; }

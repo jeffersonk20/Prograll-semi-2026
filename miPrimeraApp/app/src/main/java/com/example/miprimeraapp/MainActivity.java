@@ -127,6 +127,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.btnInventory).setOnClickListener(v -> {
+            mostrarInventario();
+        });
+
         searchEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -147,50 +151,74 @@ public class MainActivity extends AppCompatActivity {
             if (di.hayConexionInternet()) {
                 obtenerDatosServidor datosServidor = new obtenerDatosServidor();
                 String respuesta = datosServidor.execute().get();
-                JSONObject jsonObject = new JSONObject(respuesta);
-                JSONArray jsonArray = jsonObject.getJSONArray("rows");
+                if (respuesta != null && !respuesta.isEmpty()) {
+                    JSONObject jsonObject = new JSONObject(respuesta);
+                    if (jsonObject.has("rows")) {
+                        JSONArray jsonArray = jsonObject.getJSONArray("rows");
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject row = jsonArray.getJSONObject(i).getJSONObject("value");
+                            
+                            // FILTRO CRÍTICO: No cargar si está marcado para eliminar
+                            if (row.has("_deleted") && row.getBoolean("_deleted")) continue;
+                            if (row.optBoolean("deleted", false)) continue;
 
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject row = jsonArray.getJSONObject(i).getJSONObject("value");
-                    Product p = new Product();
-                    p.set_id(row.getString("_id"));
-                    p.set_rev(row.getString("_rev"));
-                    
-                    p.setName(row.getString("name"));
-                    p.setCategory(row.getString("category"));
-                    p.setPrice(row.getDouble("price"));
-                    p.setDescription(row.getString("description"));
-                    p.setSpecs(row.getString("specs"));
-                    p.setImageUri(row.getString("imageUri"));
-                    p.setImageUri2(row.optString("imageUri2", ""));
-                    p.setImageUri3(row.optString("imageUri3", ""));
-                    productCatalog.add(p);
+                            Product p = new Product();
+                            p.set_id(row.getString("_id"));
+                            p.set_rev(row.getString("_rev"));
+                            p.setName(row.getString("name"));
+                            p.setCategory(row.getString("category"));
+                            p.setPrice(row.getDouble("price"));
+                            p.setCost(row.optDouble("cost", 0.0));
+                            p.setStock(row.optInt("stock", 0));
+                            p.setDescription(row.getString("description"));
+                            p.setSpecs(row.getString("specs"));
+                            p.setImageUri(row.getString("imageUri"));
+                            p.setImageUri2(row.optString("imageUri2", ""));
+                            p.setImageUri3(row.optString("imageUri3", ""));
+                            productCatalog.add(p);
+                        }
+                    }
                 }
-            } else {
-                Cursor cursor = dbHelper.lista_productos();
-                if (cursor != null && cursor.moveToFirst()) {
-                    do {
+            }
+            
+            // Siempre cargar de SQLite lo que no esté en el catálogo para evitar duplicados 
+            // y asegurar que el inventario local sea correcto
+            Cursor cursor = dbHelper.lista_productos();
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    int localId = cursor.getInt(0);
+                    String couchId = cursor.getColumnCount() > 11 ? cursor.getString(11) : "";
+                    
+                    // Si ya lo cargamos desde CouchDB (por su couchId), no lo duplicamos
+                    boolean yaExiste = false;
+                    for(Product p : productCatalog) {
+                        if(p.get_id() != null && p.get_id().equals(couchId)) {
+                            yaExiste = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!yaExiste) {
                         Product p = new Product();
-                        p.setId(cursor.getInt(0));
+                        p.setId(localId);
                         p.setName(cursor.getString(1));
                         p.setCategory(cursor.getString(2));
                         p.setPrice(cursor.getDouble(3));
-                        p.setDescription(cursor.getString(4));
-                        p.setSpecs(cursor.getString(5));
-                        p.setImageUri(cursor.getString(6));
-                        if (cursor.getColumnCount() > 7) p.setImageUri2(cursor.getString(7));
-                        if (cursor.getColumnCount() > 8) p.setImageUri3(cursor.getString(8));
+                        p.setCost(cursor.getDouble(4));
+                        p.setStock(cursor.getInt(5));
+                        p.setDescription(cursor.getString(6));
+                        p.setSpecs(cursor.getString(7));
+                        p.setImageUri(cursor.getString(8));
+                        p.setImageUri2(cursor.getString(9));
+                        p.setImageUri3(cursor.getString(10));
+                        p.set_id(couchId);
                         productCatalog.add(p);
-                    } while (cursor.moveToNext());
-                    cursor.close();
-                }
+                    }
+                } while (cursor.moveToNext());
+                cursor.close();
             }
         } catch (Exception e) {
             Toast.makeText(this, "Error al cargar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-
-        if (productCatalog.isEmpty()) {
-            initCatalog();
         }
     }
 
@@ -310,20 +338,27 @@ public class MainActivity extends AppCompatActivity {
             btnDel.setOnClickListener(view -> {
                 new AlertDialog.Builder(this).setTitle("Eliminar").setMessage("¿Eliminar " + p.getName() + "?")
                     .setPositiveButton("Sí", (d, w) -> {
-                        // Eliminar de SQLite
+                        // 1. Eliminar de SQLite inmediatamente
                         dbHelper.administrar_productos("eliminar", new String[]{String.valueOf(p.getId())});
                         
-                        // Eliminar de CouchDB si hay internet y tenemos los IDs
+                        // 2. Si tiene ID de CouchDB, marcar como eliminado en el servidor
                         if (di.hayConexionInternet() && p.get_id() != null) {
-                            try {
-                                String urlEliminar = utilidades.url_mto + "/" + p.get_id() + "?rev=" + p.get_rev();
-                                enviarDatosServidor objEliminar = new enviarDatosServidor(this);
-                                objEliminar.execute("{}", "DELETE", urlEliminar);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                            new Thread(() -> {
+                                try {
+                                    JSONObject deleteBody = new JSONObject();
+                                    deleteBody.put("_id", p.get_id());
+                                    deleteBody.put("_rev", p.get_rev());
+                                    deleteBody.put("_deleted", true); 
+                                    
+                                    enviarDatosServidor objEliminar = new enviarDatosServidor(this);
+                                    objEliminar.execute(deleteBody.toString(), "PUT", utilidades.url_mto + "/" + p.get_id());
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }).start();
                         }
                         
+                        // 3. Limpiar catálogo local y refrescar UI e Inventario
                         loadProducts();
                         applyFilters();
                         Toast.makeText(this, "Eliminado con éxito", Toast.LENGTH_SHORT).show();
@@ -365,7 +400,9 @@ public class MainActivity extends AppCompatActivity {
         tvLabel.setGravity(Gravity.CENTER_HORIZONTAL); layout.addView(tvLabel);
 
         EditText etName = new EditText(this); etName.setHint("Nombre"); layout.addView(etName);
-        EditText etPrice = new EditText(this); etPrice.setHint("Precio"); etPrice.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); layout.addView(etPrice);
+        EditText etPrice = new EditText(this); etPrice.setHint("Precio de Venta"); etPrice.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); layout.addView(etPrice);
+        EditText etCost = new EditText(this); etCost.setHint("Costo"); etCost.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); layout.addView(etCost);
+        EditText etStock = new EditText(this); etStock.setHint("Stock (Existencia)"); etStock.setInputType(InputType.TYPE_CLASS_NUMBER); layout.addView(etStock);
         EditText etDesc = new EditText(this); etDesc.setHint("Descripción Corta"); layout.addView(etDesc);
         EditText etSpecs = new EditText(this); etSpecs.setHint("Especificaciones"); layout.addView(etSpecs);
 
@@ -381,6 +418,8 @@ public class MainActivity extends AppCompatActivity {
         if (existingProduct != null) {
             etName.setText(existingProduct.getName());
             etPrice.setText(String.valueOf(existingProduct.getPrice()));
+            etCost.setText(String.valueOf(existingProduct.getCost()));
+            etStock.setText(String.valueOf(existingProduct.getStock()));
             etDesc.setText(existingProduct.getDescription());
             etSpecs.setText(existingProduct.getSpecs());
             if (existingProduct.getImageUri() != null && !existingProduct.getImageUri().isEmpty()) {
@@ -404,6 +443,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String name = etName.getText().toString();
                 String price = etPrice.getText().toString();
+                String cost = etCost.getText().toString();
+                String stock = etStock.getText().toString();
                 String desc = etDesc.getText().toString();
                 String specs = etSpecs.getText().toString();
                 String cat = spnCat.getSelectedItem().toString();
@@ -416,10 +457,10 @@ public class MainActivity extends AppCompatActivity {
 
                 String result;
                 if (existingProduct != null) {
-                    String[] datos = {String.valueOf(existingProduct.getId()), name, cat, price, desc, specs, uri, uri2, uri3};
+                    String[] datos = {String.valueOf(existingProduct.getId()), name, cat, price, cost, stock, desc, specs, uri, uri2, uri3};
                     result = dbHelper.administrar_productos("modificar", datos);
                 } else {
-                    String[] datos = {"0", name, cat, price, desc, specs, uri, uri2, uri3};
+                    String[] datos = {null, name, cat, price, cost, stock, desc, specs, uri, uri2, uri3};
                     result = dbHelper.administrar_productos("nuevo", datos);
                 }
                 
@@ -437,6 +478,8 @@ public class MainActivity extends AppCompatActivity {
                             datosCouch.put("name", name);
                             datosCouch.put("category", cat);
                             datosCouch.put("price", Double.parseDouble(price));
+                            datosCouch.put("cost", Double.parseDouble(cost));
+                            datosCouch.put("stock", Integer.parseInt(stock));
                             datosCouch.put("description", desc);
                             datosCouch.put("specs", specs);
                             datosCouch.put("imageUri", uri);
@@ -714,24 +757,24 @@ public class MainActivity extends AppCompatActivity {
             Cursor cursor = dbHelper.lista_productos();
             if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    // Solo subimos los que NO tengan couchId (columna 9)
-                    String couchIdExistente = cursor.getColumnCount() > 9 ? cursor.getString(9) : "";
+                    String couchIdExistente = cursor.getColumnCount() > 10 ? cursor.getString(10) : "";
                     
                     if (couchIdExistente == null || couchIdExistente.isEmpty()) {
                         JSONObject datosCouch = new JSONObject();
                         datosCouch.put("name", cursor.getString(1));
                         datosCouch.put("category", cursor.getString(2));
                         datosCouch.put("price", cursor.getDouble(3));
-                        datosCouch.put("description", cursor.getString(4));
-                        datosCouch.put("specs", cursor.getString(5));
-                        datosCouch.put("imageUri", cursor.getString(6));
-                        datosCouch.put("imageUri2", cursor.getString(7));
-                        datosCouch.put("imageUri3", cursor.getString(8));
+                        datosCouch.put("cost", cursor.getDouble(4));
+                        datosCouch.put("stock", cursor.getInt(5));
+                        datosCouch.put("description", cursor.getString(6));
+                        datosCouch.put("specs", cursor.getString(7));
+                        datosCouch.put("imageUri", cursor.getString(8));
+                        datosCouch.put("imageUri2", cursor.getString(9));
+                        datosCouch.put("imageUri3", cursor.getString(10));
 
                         enviarDatosServidor objEnviar = new enviarDatosServidor(this);
                         String respuesta = objEnviar.execute(datosCouch.toString(), "POST", utilidades.url_mto).get();
                         
-                        // Si se subió con éxito, guardamos el ID que nos dio CouchDB en SQLite
                         JSONObject respJson = new JSONObject(respuesta);
                         if (respJson.has("id")) {
                             dbHelper.actualizarIdCouch(String.valueOf(cursor.getInt(0)), respJson.getString("id"));
@@ -750,9 +793,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showSpecs(Product p) {
+        double gain = p.getPrice() - p.getCost();
+        double percent = (p.getCost() > 0) ? (gain / p.getCost()) * 100 : 0;
+        
         String detail = "Descripción:\n" + p.getDescription() + 
                        "\n\nEspecificaciones Técnicas:\n" + p.getSpecs() +
-                       "\n\nPrecio: $" + p.getPrice();
+                       "\n\nCosto: $" + String.format(Locale.US, "%.2f", p.getCost()) +
+                       "\nPrecio: $" + String.format(Locale.US, "%.2f", p.getPrice()) +
+                       "\nGanancia: " + String.format(Locale.US, "%.2f", gain) + " (" + String.format(Locale.US, "%.1f%%", percent) + ")" +
+                       "\n\nStock Disponible: " + p.getStock() + " unidades";
                        
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(p.getName());
@@ -819,6 +868,40 @@ public class MainActivity extends AppCompatActivity {
         scrollView.addView(layout);
 
         builder.setView(scrollView);
+        builder.setPositiveButton("Cerrar", null);
+        builder.show();
+    }
+
+    private void mostrarInventario() {
+        Cursor cursor = dbHelper.lista_productos();
+        int totalProductos = 0;
+        int totalStock = 0;
+        double inversionTotal = 0;
+        double valorVentaTotal = 0;
+
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                int stock = cursor.getInt(5);
+                double cost = cursor.getDouble(4);
+                double price = cursor.getDouble(3);
+
+                totalProductos++;
+                totalStock += stock;
+                inversionTotal += (cost * stock);
+                valorVentaTotal += (price * stock);
+            } while (cursor.moveToNext());
+            cursor.close();
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Resumen de Inventario");
+        String mensaje = "Tipos de productos: " + totalProductos +
+                        "\nUnidades totales: " + totalStock +
+                        "\nInversión total: $" + String.format(Locale.US, "%.2f", inversionTotal) +
+                        "\nValor total venta: $" + String.format(Locale.US, "%.2f", valorVentaTotal) +
+                        "\nGanancia potencial: $" + String.format(Locale.US, "%.2f", (valorVentaTotal - inversionTotal));
+        
+        builder.setMessage(mensaje);
         builder.setPositiveButton("Cerrar", null);
         builder.show();
     }
