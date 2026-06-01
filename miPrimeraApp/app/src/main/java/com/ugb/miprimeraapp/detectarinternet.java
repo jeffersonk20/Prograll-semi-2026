@@ -1,4 +1,4 @@
-package com.example.miprimeraapp;
+package com.ugb.miprimeraapp;
 
 import android.content.Context;
 import android.net.ConnectivityManager;

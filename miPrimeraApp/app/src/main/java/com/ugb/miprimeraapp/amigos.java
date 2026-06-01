@@ -1,4 +1,4 @@
-package com.example.miprimeraapp;
+package com.ugb.miprimeraapp;
 
 public class amigos {
     String idAmigo;
